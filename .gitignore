@@ -218,3 +218,35 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# CivicFix AI - frontend dependencies and build output
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment files and secrets
+.env.*
+!.env.example
+!.env.*.example
+
+# Local databases and database backups
+*.sqlite3
+*.db
+*.dump
+*.bak
+
+# Logs and temporary files
+*.log
+*.tmp
+temp/
+
+# Coverage reports
+coverage/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Local VS Code settings
+.vscode/
