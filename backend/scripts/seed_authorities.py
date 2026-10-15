@@ -19,7 +19,8 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.database import BACKEND_DIR, engine
+from app.config import BACKEND_DIR
+from app.database import engine
 from app.models import Authority
 
 DEFAULT_PATH = BACKEND_DIR / "seed" / "authorities.json"

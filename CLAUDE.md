@@ -22,5 +22,6 @@ Design docs: docs/architecture.md, docs/api-contract.md, docs/database-schema.md
 - Docs aligned: "reports" naming, versioned complaint_drafts for approval, edit lock after submission. Update all three contracts together.
 - Database layer done: models in app/models/ (one file per table; value lists in choices.py), 4 Alembic migrations, 81 model tests.
 - Migrations: autogenerate, then review the file before upgrade. Autogenerate misses CHECK constraints on existing tables; add them by hand. Verify with python -m alembic check.
-- Tests run in civicfix_db inside a rolled-back transaction (tests/conftest.py). Set up a separate test database before API tests.
-- Next: authority seed script, then app foundation (/api/v1 routers, DB session dependency, JSON error format, test DB), then auth.
+- Tests run in civicfix_test_db (TEST_DB_NAME in .env), migrated automatically, each test inside a rolled-back transaction (tests/conftest.py). The `client` fixture is a TestClient using that session.
+- Done: authority seed script (python -m scripts.seed_authorities), API foundation (get_db, JSON error format in app/errors.py, GET /api/v1/authorities).
+- Next: auth (register, login, current user), then reports API.

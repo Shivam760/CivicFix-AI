@@ -6,7 +6,8 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy.exc import DataError, IntegrityError
 
-from app.database import BACKEND_DIR, engine
+from app.config import BACKEND_DIR
+from app.database import engine
 from app.models import User
 
 REQUIRED_TEXT_FIELDS = ["name", "email", "password_hash"]

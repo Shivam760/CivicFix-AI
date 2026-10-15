@@ -28,6 +28,7 @@ from app.database import engine  # noqa: E402
 from app.dependencies import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Report, User  # noqa: E402
+from app.security import create_access_token  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -76,6 +77,12 @@ def user(db_session):
     db_session.add(user)
     db_session.flush()
     return user
+
+
+@pytest.fixture
+def auth_headers(user):
+    """Request headers that log in as the user fixture."""
+    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
 @pytest.fixture

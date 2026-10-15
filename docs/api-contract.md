@@ -71,7 +71,18 @@ Response:
       "created_at": "2026-10-14T10:00:00Z"
     }
 
-Passwords must never appear in API responses or logs.
+Validation:
+
+- `name`: required, 1–100 characters after trimming surrounding spaces.
+- `email`: required, a valid email address, at most 255 characters.
+- `password`: required, 8–128 characters.
+
+Errors:
+
+- `409 Conflict` with code `EMAIL_TAKEN`: an account with this email already exists (compared ignoring letter case).
+- `422 Unprocessable Entity`: a field fails validation.
+
+Passwords must never appear in API responses or logs. They are stored only as Argon2 hashes.
 
 ### POST /api/v1/auth/login
 
@@ -91,9 +102,22 @@ Response:
       "token_type": "bearer"
     }
 
-Invalid credentials: `401 Unauthorized`
+Invalid credentials: `401 Unauthorized` with code `INVALID_CREDENTIALS`. A wrong password and an unknown email return the same response, so the API does not reveal which emails have accounts. Email is matched ignoring letter case.
 
-The token format and expiry policy will be decided before authentication is implemented.
+Tokens:
+
+- The access token is a JWT signed with HS256 using `SECRET_KEY` from `backend/.env`.
+- It expires after `ACCESS_TOKEN_EXPIRE_MINUTES` (default 60). There are no refresh tokens; the citizen logs in again.
+- Send it on protected endpoints as `Authorization: Bearer <access_token>`.
+- A missing token returns `401` with code `NOT_AUTHENTICATED`. An invalid or expired token, or one whose user no longer exists, returns `401` with code `INVALID_TOKEN`.
+
+### GET /api/v1/auth/me
+
+Return the logged-in user. Requires a token.
+
+Success: `200 OK`
+
+Response: the same shape as the register response.
 
 ## 4. Reports
 
