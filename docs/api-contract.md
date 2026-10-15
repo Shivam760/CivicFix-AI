@@ -434,6 +434,18 @@ Outcomes:
 
 Successful responses return the updated Report object.
 
+Error codes, in the order the backend checks them:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+- `409 Conflict` with code `REPORT_LOCKED`: `submission_status` is pending, confirmed, or unknown.
+- `409 Conflict` with code `NO_VALID_APPROVAL`: No approval, or the approved draft is not the latest draft.
+- `503 Service Unavailable` with code `SUBMISSION_UNAVAILABLE`: No integration is configured.
+- `502 Bad Gateway` with code `SUBMISSION_FAILED`: The integration reported a failure. The `failed` status and event are saved.
+
+If the integration crashes or returns an unusable result (for example, "confirmed" without a reference), the outcome is recorded as `unknown`, because the backend cannot tell whether the authority received the complaint. This locks the report and prevents a blind retry from sending a duplicate.
+
+The report row is locked (`SELECT ... FOR UPDATE`) during the request, so two simultaneous requests cannot both submit.
+
 A successful API response must not falsely imply that an external authority received the complaint. The MVP has no submission integration, so this endpoint returns `503 Service Unavailable` until one is configured.
 
 ## 8. Report events
