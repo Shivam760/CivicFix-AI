@@ -9,7 +9,7 @@
 - Primary keys use UUIDs.
 - Timestamps use timezone-aware PostgreSQL timestamps and are stored in UTC.
 - Foreign keys enforce relationships between records.
-- Email addresses must be unique.
+- Email addresses must be unique, ignoring letter case.
 - Passwords are stored only as secure password hashes.
 - Report ownership is enforced by the backend on every protected request.
 - Important workflow changes are recorded in `report_events`.
@@ -37,10 +37,12 @@ Stores citizen account information.
 |---|---|---|
 | id | UUID | Primary key |
 | name | VARCHAR(100) | Required |
-| email | VARCHAR(255) | Required, unique |
+| email | VARCHAR(255) | Required, unique ignoring letter case |
 | password_hash | VARCHAR(255) | Required |
 | created_at | TIMESTAMPTZ | Required |
 | updated_at | TIMESTAMPTZ | Required |
+
+Email uniqueness ignores letter case: `Aarav@example.com` and `aarav@example.com` cannot both exist. It is enforced by a unique index on `lower(email)`. The email is stored as entered, and login looks it up case-insensitively.
 
 ## 4. reports
 
@@ -201,7 +203,7 @@ Run statuses:
 
 Indexes:
 
-- users.email — unique index
+- lower(users.email) — unique index, named uq_users_email_lower (case-insensitive email uniqueness)
 - reports.user_id
 - reports.status
 - reports.category
