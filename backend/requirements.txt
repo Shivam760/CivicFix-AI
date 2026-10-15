@@ -7,3 +7,4 @@ alembic
 pyjwt
 pwdlib[argon2]
 email-validator
+google-genai

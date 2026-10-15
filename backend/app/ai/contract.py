@@ -95,6 +95,18 @@ class InvalidAnalysis(Exception):
     """The analyzer's output broke the contract. The message never contains report text."""
 
 
+# Analyzers raise these instead of library errors, with messages that are safe
+# to store (status codes only: no request details, report text, or keys).
+
+
+class AnalyzerFailed(Exception):
+    """The AI service returned an error. Stored as a failed run; the API returns 502."""
+
+
+class AnalyzerUnavailable(Exception):
+    """The AI service is busy or out of quota. Stored as a failed run; the API returns 503."""
+
+
 def validate_output(raw: dict, analysis_input: AnalysisInput) -> AnalysisOutput:
     try:
         output = AnalysisOutput.model_validate(raw)

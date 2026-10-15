@@ -7,7 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.analyzers import Analyzer
-from app.ai.contract import AnalysisInput, InvalidAnalysis, validate_output
+from app.ai.contract import (
+    AnalysisInput,
+    AnalyzerFailed,
+    AnalyzerUnavailable,
+    InvalidAnalysis,
+    validate_output,
+)
 from app.errors import ApiError
 from app.models import AgentRun, Authority, ComplaintDraft, Report, User
 from app.services.drafts import add_draft
@@ -65,12 +71,20 @@ def run_analysis(
     try:
         output = validate_output(analyze(analysis_input), analysis_input)
     except Exception as exc:
-        if isinstance(exc, InvalidAnalysis):
-            error_message = str(exc)  # our own message: locations only, no report text
+        if isinstance(exc, AnalyzerUnavailable):
+            error_message = str(exc)  # our own message: status code only
+            error = ApiError(
+                503, "AI_UNAVAILABLE", "The AI service is busy or out of quota. Try again later."
+            )
+        elif isinstance(exc, (InvalidAnalysis, AnalyzerFailed)):
+            error_message = str(exc)  # our own message: no report text, no keys
+            error = ApiError(502, "AI_ANALYSIS_FAILED", "The report could not be analyzed.")
         else:
-            # Library errors can contain request details or keys: store only the type.
+            # Unknown errors can contain request details or keys: store only the type.
             logger.exception("Analyzer crashed for report %s", report.id)
             error_message = f"Analyzer error: {type(exc).__name__}"
+            error = ApiError(502, "AI_ANALYSIS_FAILED", "The report could not be analyzed.")
+        logger.warning("AI analysis failed for report %s: %s", report.id, error_message)
         run.status = "failed"
         run.error_message = error_message
         run.completed_at = datetime.now(timezone.utc)
@@ -78,7 +92,7 @@ def run_analysis(
             db, report, "ai_analysis_failed", "AI analysis failed.", user, {"run_id": str(run.id)}
         )
         db.commit()
-        raise ApiError(502, "AI_ANALYSIS_FAILED", "The report could not be analyzed.")
+        raise error
 
     run.status = "completed"
     run.result = output.model_dump(mode="json")

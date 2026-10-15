@@ -1,12 +1,13 @@
 """Analyzers: functions that turn an AnalysisInput into a raw output dict.
 
-AI_PROVIDER in backend/.env chooses which one the API uses. Only "fake" exists
-for now; a real LLM analyzer is added in a later step behind the same interface.
+AI_PROVIDER in backend/.env chooses which one the API uses: "fake" (default,
+used by tests) or "gemini" (see app/ai/gemini.py).
 """
 
 import os
 from collections.abc import Callable
 
+from app.ai import gemini
 from app.ai.contract import AnalysisInput
 from app.errors import ApiError
 
@@ -68,4 +69,10 @@ def get_analyzer() -> Analyzer:
     provider = os.getenv("AI_PROVIDER", "fake")
     if provider == "fake":
         return fake_analyze
+    if provider == "gemini":
+        try:
+            gemini.settings()  # fail now, before a run is stored, if the key is missing
+        except gemini.GeminiNotConfigured:
+            raise ApiError(503, "AI_UNAVAILABLE", "The AI service is not configured.")
+        return gemini.gemini_analyze
     raise ApiError(503, "AI_UNAVAILABLE", "The AI service is not configured.")

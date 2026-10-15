@@ -316,7 +316,11 @@ Errors:
 - `404 Not Found`: The report does not exist or is not accessible.
 - `409 Conflict`: The report is locked (see "Locked reports"). No run is started.
 - `502 Bad Gateway` with code `AI_ANALYSIS_FAILED`: The AI workflow failed or returned invalid output. The run is stored with status `failed` and an `ai_analysis_failed` event is recorded. No draft is created.
-- `503 Service Unavailable` with code `AI_UNAVAILABLE`: `AI_PROVIDER` names no known analyzer. No run is started.
+- `503 Service Unavailable` with code `AI_UNAVAILABLE`:
+  - `AI_PROVIDER` names no known analyzer, or its settings are missing. No run is started.
+  - The AI service is temporarily unavailable (quota or rate limit reached, or overloaded). The run is stored with status `failed` and an `ai_analysis_failed` event is recorded. The client may try again later.
+
+A failed run's `error_message` holds only a safe summary, such as `Gemini returned 429 RESOURCE_EXHAUSTED`: never report text, the AI service's full error text, or keys.
 
 ### GET /api/v1/reports/{report_id}/analysis
 

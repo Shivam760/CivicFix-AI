@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy import select
 
 from app.ai.analyzers import fake_analyze, get_analyzer
+from app.ai.contract import AnalyzerFailed, AnalyzerUnavailable
 from app.main import app
 from app.models import AgentRun, Authority, ComplaintDraft, Report, ReportEvent
 
@@ -153,6 +154,36 @@ def test_crash_details_are_not_stored_or_returned(client, db_session, auth_heade
     [run] = runs(db_session, report.id)
     assert "sk-secret" not in run.error_message
     assert run.error_message == "Analyzer error: RuntimeError"
+
+
+def busy_analyzer(data):
+    raise AnalyzerUnavailable("Gemini returned 429 RESOURCE_EXHAUSTED")
+
+
+def rejecting_analyzer(data):
+    raise AnalyzerFailed("Gemini returned 400 INVALID_ARGUMENT")
+
+
+def test_busy_ai_returns_503_and_stores_failed_run(client, db_session, auth_headers, report):
+    use_analyzer(busy_analyzer)
+
+    response = analyze(client, auth_headers, report.id)
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "AI_UNAVAILABLE"
+    [run] = runs(db_session, report.id)
+    assert (run.status, run.error_message) == ("failed", "Gemini returned 429 RESOURCE_EXHAUSTED")
+    assert event_types(db_session, report.id) == ["ai_analysis_failed"]
+
+
+def test_ai_service_error_returns_502_with_status_in_run(client, db_session, auth_headers, report):
+    use_analyzer(rejecting_analyzer)
+
+    response = analyze(client, auth_headers, report.id)
+
+    assert response.json()["error"]["code"] == "AI_ANALYSIS_FAILED"
+    [run] = runs(db_session, report.id)
+    assert run.error_message == "Gemini returned 400 INVALID_ARGUMENT"
 
 
 @pytest.mark.parametrize("status", ["pending", "confirmed", "unknown"])

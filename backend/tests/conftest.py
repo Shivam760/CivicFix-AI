@@ -18,6 +18,11 @@ if _test_db == _dev_db:
     raise RuntimeError("TEST_DB_NAME must differ from DB_NAME, or tests would use real data.")
 os.environ["DB_NAME"] = _test_db
 
+# Tests never call a real AI service, whatever backend/.env says: use the fake
+# analyzer, and remove the real Gemini key so no test can reach Google by accident.
+os.environ["AI_PROVIDER"] = "fake"
+os.environ.pop("GEMINI_API_KEY", None)
+
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
