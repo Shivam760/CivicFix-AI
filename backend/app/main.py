@@ -1,6 +1,8 @@
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import cors_origins
 from app.errors import register_error_handlers
 from app.routers import analysis, auth, authorities, drafts, events, reports, submission
 
@@ -13,6 +15,14 @@ app = FastAPI(
 )
 
 register_error_handlers(app)
+# Let the frontend, served from another address, call the API from a browser.
+# Login uses a Bearer token header, not cookies, so credentials stay off.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins(),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(authorities.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)

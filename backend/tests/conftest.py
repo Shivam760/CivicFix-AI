@@ -22,6 +22,9 @@ os.environ["DB_NAME"] = _test_db
 # analyzer, and remove the real Gemini key so no test can reach Google by accident.
 os.environ["AI_PROVIDER"] = "fake"
 os.environ.pop("GEMINI_API_KEY", None)
+# Empty means the default origins (the Vite dev server), whatever backend/.env says.
+# It is set, not removed, so app.config's load_dotenv can't fill it back in.
+os.environ["CORS_ORIGINS"] = ""
 
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
