@@ -219,6 +219,8 @@ CHECK constraints:
 - reports.status, reports.submission_status, authorities.verification_status, complaint_drafts.source, and agent_runs.status use their listed values.
 - complaint_drafts.agent_run_id is not null when source is ai, and null when source is citizen.
 - reports.approved_draft_id, reports.approved_at, and reports.approved_by_user_id are either all null or all set.
+- authorities.supported_categories contains only values from section 2 (no null elements).
+- authorities.verification_status is verified only when last_verified_at is set.
 - complaint_drafts.version is at least 1.
 - Latitude is between -90 and 90; longitude is between -180 and 180.
 - Required text fields are not blank.
