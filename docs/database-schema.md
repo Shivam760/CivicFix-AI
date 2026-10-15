@@ -219,6 +219,7 @@ CHECK constraints:
 - reports.status, reports.submission_status, authorities.verification_status, complaint_drafts.source, and agent_runs.status use their listed values.
 - complaint_drafts.agent_run_id is not null when source is ai, and null when source is citizen.
 - reports.approved_draft_id, reports.approved_at, and reports.approved_by_user_id are either all null or all set.
+- reports.external_reference and reports.submitted_at are null unless submission_status is confirmed.
 - authorities.supported_categories contains only values from section 2 (no null elements).
 - authorities.verification_status is verified only when last_verified_at is set.
 - complaint_drafts.version is at least 1.
@@ -227,7 +228,7 @@ CHECK constraints:
 
 Additional rules:
 
-- Use foreign keys with deliberate deletion behavior.
+- All foreign keys use ON DELETE RESTRICT: a row that other rows reference cannot be deleted, so history is never removed silently. The MVP has no delete operations; revisit this together with the soft-deletion decision.
 - Prevent unauthorized access to another user's reports.
 - Use transactions when a change and its event must be recorded together.
 

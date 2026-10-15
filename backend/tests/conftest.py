@@ -1,7 +1,10 @@
+import uuid
+
 import pytest
 from sqlalchemy.orm import Session
 
 from app.database import engine
+from app.models import User
 
 
 @pytest.fixture
@@ -22,3 +25,16 @@ def db_session():
         session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def user(db_session):
+    """A saved user, for tests that need a report owner or event actor."""
+    user = User(
+        name="Test User",
+        email=f"test-{uuid.uuid4()}@example.com",
+        password_hash="not-a-real-hash",
+    )
+    db_session.add(user)
+    db_session.flush()
+    return user

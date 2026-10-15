@@ -3,6 +3,10 @@
 # database-schema.md section 2: the single source of truth for categories.
 ISSUE_CATEGORIES = ("road_damage", "garbage", "streetlight", "other")
 
+REPORT_STATUSES = ("reported", "under_review", "in_progress", "resolved", "closed")
+
+SUBMISSION_STATUSES = ("not_submitted", "pending", "confirmed", "failed", "unknown")
+
 VERIFICATION_STATUSES = ("verified", "unverified")
 
 
