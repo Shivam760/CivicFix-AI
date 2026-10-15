@@ -315,7 +315,8 @@ Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
 - `409 Conflict`: The report is locked (see "Locked reports"). No run is started.
-- `502 Bad Gateway`: The AI workflow failed or returned invalid output. The run is stored with status `failed` and an `ai_analysis_failed` event is recorded. No draft is created.
+- `502 Bad Gateway` with code `AI_ANALYSIS_FAILED`: The AI workflow failed or returned invalid output. The run is stored with status `failed` and an `ai_analysis_failed` event is recorded. No draft is created.
+- `503 Service Unavailable` with code `AI_UNAVAILABLE`: `AI_PROVIDER` names no known analyzer. No run is started.
 
 ### GET /api/v1/reports/{report_id}/analysis
 
@@ -325,7 +326,7 @@ Success: `200 OK`
 
 Response: the same shape as the analyze response.
 
-If no completed analysis exists, return `404 Not Found`.
+If no completed analysis exists, return `404 Not Found` with code `ANALYSIS_NOT_FOUND`. A failed run never replaces the latest completed one.
 
 ## 6. Complaint drafts
 

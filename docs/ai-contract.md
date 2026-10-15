@@ -135,7 +135,8 @@ Example:
 
 ## 8. Integration requirements
 
-- The AI workflow is initially a Python function called by the backend.
+- The AI workflow is initially a Python function called by the backend (an "analyzer", in backend/app/ai/analyzers.py). `AI_PROVIDER` in backend/.env chooses which one is used.
+- `AI_PROVIDER=fake` (the default) uses a predictable fake analyzer for development and tests. It invents nothing, reports `model_name` as `fake-analyzer`, and adds a warning saying it is not a real AI.
 - Input and output are defined as Pydantic models, used in both local tests and backend integration.
 - The backend validates the output against the output model, including the authority ID check in section 6, before storing or returning it.
 - When this contract changes, update this document, database-schema.md, and api-contract.md together.
