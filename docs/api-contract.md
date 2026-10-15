@@ -365,7 +365,8 @@ Records a `draft_edited` event. Invalidates any existing approval and records an
 Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
-- `409 Conflict`: The report is locked (see "Locked reports").
+- `409 Conflict` with code `REPORT_LOCKED`: The report is locked (see "Locked reports").
+- `409 Conflict` with code `DRAFT_VERSION_CONFLICT`: Another draft was saved at the same moment. Reload the drafts and try again.
 
 ### GET /api/v1/reports/{report_id}/drafts
 
@@ -402,7 +403,10 @@ Records a `draft_approved` event.
 Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
-- `409 Conflict`: The draft does not belong to this report or is not its latest draft, or the report is locked (see "Locked reports").
+- `409 Conflict` with code `DRAFT_NOT_LATEST`: The draft does not exist, belongs to another report, or is not this report's latest draft.
+- `409 Conflict` with code `REPORT_LOCKED`: The report is locked (see "Locked reports").
+
+Approving the draft that is already approved returns `200 OK` and records no new event.
 
 ### POST /api/v1/reports/{report_id}/submit
 

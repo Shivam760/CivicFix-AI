@@ -168,6 +168,11 @@ Event types:
 - submission_failed
 - submission_unknown
 
+Ordering:
+
+- `sequence` is a BIGINT identity column (assigned by PostgreSQL in insert order). Events are listed by `sequence`, because timestamps can tie for events saved together.
+- `created_at` defaults to `clock_timestamp()` rather than `now()`, so events recorded in one transaction still show their actual times. Index: report_events (report_id, sequence).
+
 Events should be append-only through normal application operations. Sensitive credentials and unnecessary personal information must never be placed in event metadata.
 
 ## 9. agent_runs

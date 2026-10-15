@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Identity,
+    Index,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,11 +28,15 @@ class ReportEvent(Base):
     __table_args__ = (
         CheckConstraint("btrim(event_type) <> ''", name="event_type_not_blank"),
         CheckConstraint("btrim(description) <> ''", name="description_not_blank"),
-        # Supports "this report's events, oldest first".
         Index("ix_report_events_report_id_created_at", "report_id", "created_at"),
+        # Supports "this report's events, oldest first".
+        Index("ix_report_events_report_id_sequence", "report_id", "sequence"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    # 1, 2, 3, ... in insert order, assigned by PostgreSQL. Events are sorted by
+    # this, because timestamps can tie for events saved together.
+    sequence: Mapped[int] = mapped_column(BigInteger, Identity(always=True))
     report_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("reports.id", ondelete="RESTRICT")
     )
@@ -34,6 +48,8 @@ class ReportEvent(Base):
     # Named event_metadata because "metadata" is reserved by SQLAlchemy models.
     # none_as_null: Python None is stored as SQL NULL, not as the JSON value null.
     event_metadata: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
+    # clock_timestamp(), not now(): now() is the same for every row in one
+    # transaction, so events recorded together would have no reliable order.
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=func.clock_timestamp()
     )

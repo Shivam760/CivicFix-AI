@@ -86,6 +86,17 @@ def auth_headers(user):
 
 
 @pytest.fixture
+def other_headers(db_session):
+    """Log in as a second user, to check that one user can't reach another's data."""
+    other = User(
+        name="Other User", email=f"test-{uuid.uuid4()}@example.com", password_hash="x-hash"
+    )
+    db_session.add(other)
+    db_session.flush()
+    return {"Authorization": f"Bearer {create_access_token(other.id)}"}
+
+
+@pytest.fixture
 def report(db_session, user):
     """A saved report owned by the user fixture."""
     report = Report(

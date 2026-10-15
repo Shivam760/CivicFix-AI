@@ -4,8 +4,7 @@ from datetime import datetime, timezone
 import pytest
 from sqlalchemy import select
 
-from app.models import Authority, ComplaintDraft, Report, ReportEvent, User
-from app.security import create_access_token
+from app.models import Authority, ComplaintDraft, Report, ReportEvent
 
 URL = "/api/v1/reports"
 
@@ -15,17 +14,6 @@ REPORT_FIELDS = {
     "approved_draft_id", "approved_at", "external_reference", "submitted_at",
     "created_at", "updated_at",
 }
-
-
-@pytest.fixture
-def other_headers(db_session):
-    """Log in as a second user, to check that reports stay private."""
-    other = User(
-        name="Other User", email=f"test-{uuid.uuid4()}@example.com", password_hash="x-hash"
-    )
-    db_session.add(other)
-    db_session.flush()
-    return {"Authorization": f"Bearer {create_access_token(other.id)}"}
 
 
 def new_report(**overrides) -> dict:
