@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Example Municipal Corporation (sample data)",
+    "region": "Example City",
+    "supported_categories": ["road_damage", "garbage", "streetlight"],
+    "contact_url": null,
+    "verification_status": "unverified"
+  },
+  {
+    "name": "Example Electricity Department (sample data)",
+    "region": "Example City",
+    "supported_categories": ["streetlight"],
+    "contact_url": null,
+    "verification_status": "unverified"
+  }
+]
