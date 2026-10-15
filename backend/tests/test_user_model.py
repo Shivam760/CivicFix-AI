@@ -67,6 +67,26 @@ def test_missing_required_field_rejected(db_session, field):
         db_session.flush()
 
 
+def test_new_user_is_a_citizen(db_session):
+    user = make_user()
+    db_session.add(user)
+    db_session.flush()
+    db_session.refresh(user)
+
+    assert user.role == "citizen"
+
+
+def test_official_role_accepted(db_session):
+    db_session.add(make_user(role="official"))
+    db_session.flush()
+
+
+def test_unknown_role_rejected(db_session):
+    db_session.add(make_user(role="admin"))
+    with pytest.raises(IntegrityError, match="ck_users_role_valid"):
+        db_session.flush()
+
+
 def test_name_longer_than_100_characters_rejected(db_session):
     db_session.add(make_user(name="a" * 101))
     with pytest.raises(DataError, match="too long"):

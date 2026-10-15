@@ -30,6 +30,7 @@ class UserOut(BaseModel):
     id: uuid.UUID
     name: str
     email: str
+    role: str  # "citizen" or "official"; the frontend uses it to show official-only actions
     created_at: datetime
 
 

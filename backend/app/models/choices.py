@@ -3,6 +3,9 @@
 # database-schema.md section 2: the single source of truth for categories.
 ISSUE_CATEGORIES = ("road_damage", "garbage", "streetlight", "other")
 
+# Registration always creates citizens; scripts/set_role.py makes officials.
+USER_ROLES = ("citizen", "official")
+
 REPORT_STATUSES = ("reported", "under_review", "in_progress", "resolved", "closed")
 
 SUBMISSION_STATUSES = ("not_submitted", "pending", "confirmed", "failed", "unknown")

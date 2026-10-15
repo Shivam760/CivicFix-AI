@@ -31,7 +31,7 @@ This is the single source of truth for category values:
 
 ## 3. users
 
-Stores citizen account information.
+Stores citizen and official account information.
 
 | Column | Type | Rules |
 |---|---|---|
@@ -39,10 +39,13 @@ Stores citizen account information.
 | name | VARCHAR(100) | Required |
 | email | VARCHAR(255) | Required, unique ignoring letter case |
 | password_hash | VARCHAR(255) | Required |
+| role | VARCHAR(20) | Required, one of: citizen, official; default citizen |
 | created_at | TIMESTAMPTZ | Required |
 | updated_at | TIMESTAMPTZ | Required |
 
 Email uniqueness ignores letter case: `Aarav@example.com` and `aarav@example.com` cannot both exist. It is enforced by a unique index on `lower(email)`. The email is stored as entered, and login looks it up case-insensitively.
+
+Registration always creates a `citizen`. There is no API for changing roles: an administrator makes an account an `official` with `python -m scripts.set_role <email> official`, run from `backend/`.
 
 ## 4. reports
 
@@ -221,7 +224,7 @@ Indexes:
 CHECK constraints:
 
 - reports.category is null or one of the values in section 2.
-- reports.status, reports.submission_status, authorities.verification_status, complaint_drafts.source, and agent_runs.status use their listed values.
+- users.role, reports.status, reports.submission_status, authorities.verification_status, complaint_drafts.source, and agent_runs.status use their listed values.
 - complaint_drafts.agent_run_id is not null when source is ai, and null when source is citizen.
 - reports.approved_draft_id, reports.approved_at, and reports.approved_by_user_id are either all null or all set.
 - reports.external_reference and reports.submitted_at are null unless submission_status is confirmed.

@@ -68,8 +68,11 @@ Response:
       "id": "UUID",
       "name": "Aarav Sharma",
       "email": "aarav@example.com",
+      "role": "citizen",
       "created_at": "2026-10-14T10:00:00Z"
     }
+
+- `role` is `citizen` or `official`. Registration always creates a citizen; any `role` sent in the request is ignored. Officials are created by an administrator script (database-schema.md section 3).
 
 Validation:
 

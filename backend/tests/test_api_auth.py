@@ -37,8 +37,18 @@ def test_register_returns_user_without_password(client, email):
 
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "name", "email", "created_at"}
+    assert set(body) == {"id", "name", "email", "role", "created_at"}
     assert (body["name"], body["email"]) == ("Aarav Sharma", email)
+    assert body["role"] == "citizen"
+
+
+def test_register_cannot_choose_official_role(client, db_session, email):
+    # Unknown fields are ignored, so nobody can sign themselves up as an official.
+    response = register(client, email, role="official")
+
+    assert response.status_code == 201
+    assert response.json()["role"] == "citizen"
+    assert db_session.scalar(select(User.role).where(User.email == email)) == "citizen"
 
 
 def test_register_stores_a_hash_not_the_password(client, db_session, email):
