@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 
 from app.errors import register_error_handlers
-from app.routers import auth, authorities
+from app.routers import auth, authorities, reports
 
 API_PREFIX = "/api/v1"
 
@@ -15,6 +15,7 @@ app = FastAPI(
 register_error_handlers(app)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(authorities.router, prefix=API_PREFIX)
+app.include_router(reports.router, prefix=API_PREFIX)
 
 
 @app.get("/")

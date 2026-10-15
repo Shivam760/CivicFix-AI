@@ -7,6 +7,10 @@ REPORT_STATUSES = ("reported", "under_review", "in_progress", "resolved", "close
 
 SUBMISSION_STATUSES = ("not_submitted", "pending", "confirmed", "failed", "unknown")
 
+# While a submission has one of these statuses, the report is locked
+# (api-contract.md section 4, "Locked reports").
+LOCKED_SUBMISSION_STATUSES = ("pending", "confirmed", "unknown")
+
 VERIFICATION_STATUSES = ("verified", "unverified")
 
 RUN_STATUSES = ("pending", "running", "completed", "failed")
