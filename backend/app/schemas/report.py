@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
-from app.schemas.common import IssueCategory
+from app.schemas.common import IssueCategory, ReportStatus
 
 # Surrounding spaces are removed first, so "   " counts as empty.
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -50,6 +50,16 @@ class ReportUpdate(BaseModel):
         if value is None:
             raise ValueError("This field cannot be null.")
         return value
+
+
+class StatusChange(BaseModel):
+    """POST /reports/{id}/status body."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: ReportStatus
+    # Optional explanation shown in the event history, e.g. "Crew scheduled for Monday."
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None = None
 
 
 class ReportOut(BaseModel):

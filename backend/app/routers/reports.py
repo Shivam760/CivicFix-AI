@@ -8,10 +8,12 @@ from app.dependencies import CurrentUser, DbSession
 from app.errors import ApiError
 from app.models import Authority, Report
 from app.schemas.common import IssueCategory, ReportStatus
-from app.schemas.report import ReportCreate, ReportList, ReportOut, ReportUpdate
+from app.schemas.report import ReportCreate, ReportList, ReportOut, ReportUpdate, StatusChange
 from app.services.reports import (
+    change_status,
     ensure_not_locked,
     get_owned_report,
+    get_visible_report,
     invalidate_approval,
     record_event,
 )
@@ -50,7 +52,8 @@ def list_reports(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ):
-    filters = [Report.user_id == user.id]
+    # Citizens see their own reports; officials see everyone's, to work on them.
+    filters = [] if user.role == "official" else [Report.user_id == user.id]
     if status is not None:
         filters.append(Report.status == status)
     if category is not None:
@@ -69,7 +72,18 @@ def list_reports(
 
 @router.get("/{report_id}", response_model=ReportOut)
 def get_report(report_id: uuid.UUID, user: CurrentUser, db: DbSession):
-    return get_owned_report(db, report_id, user)
+    return get_visible_report(db, report_id, user)
+
+
+@router.post("/{report_id}/status", response_model=ReportOut)
+def update_status(report_id: uuid.UUID, body: StatusChange, user: CurrentUser, db: DbSession):
+    # Not blocked by the submission lock: the lock protects what was sent to
+    # the authority, and officials must still be able to track the work.
+    report = get_visible_report(db, report_id, user)
+    change_status(db, report, body.status, user, body.note)
+    db.commit()
+    db.refresh(report)
+    return report
 
 
 @router.patch("/{report_id}", response_model=ReportOut)

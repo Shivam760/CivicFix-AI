@@ -105,6 +105,20 @@ def other_headers(db_session):
 
 
 @pytest.fixture
+def official_headers(db_session):
+    """Log in as an official, who may read every report and change its status."""
+    official = User(
+        name="Official User",
+        email=f"test-{uuid.uuid4()}@example.com",
+        password_hash="x-hash",
+        role="official",
+    )
+    db_session.add(official)
+    db_session.flush()
+    return {"Authorization": f"Bearer {create_access_token(official.id)}"}
+
+
+@pytest.fixture
 def report(db_session, user):
     """A saved report owned by the user fixture."""
     report = Report(

@@ -80,6 +80,8 @@ Report statuses:
 - resolved
 - closed
 
+Allowed status changes and who may make them are listed under `POST /api/v1/reports/{report_id}/status` in api-contract.md section 4. Each change records a `report_status_changed` event.
+
 Submission statuses:
 
 - not_submitted — no submission has been requested
@@ -268,7 +270,6 @@ Evidence uploads are not part of the MVP. This table is the planned design and i
 
 ## 12. Items to finalize later
 
-- Allowed transitions between report statuses, and who may change them.
 - External submission retry behavior.
 - Whether soft deletion is required for user accounts or reports.
 - Data retention and file-storage policies.

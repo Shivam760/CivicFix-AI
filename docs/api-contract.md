@@ -193,7 +193,7 @@ Response: a Report object. Records a `report_created` event.
 
 ### GET /api/v1/reports
 
-List reports belonging to the authenticated user.
+List reports. A citizen sees their own reports; an official sees all reports.
 
 Query parameters:
 
@@ -217,11 +217,54 @@ Each item is a Report object.
 
 ### GET /api/v1/reports/{report_id}
 
-Retrieve one report owned by the authenticated user.
+Retrieve one report: the citizen's own, or any report for an official.
 
 Success: `200 OK`
 
 Response: a Report object.
+
+Officials may read any report and its event history, and change its status. They cannot edit a report, see or create its drafts, approve, analyze, or submit; those endpoints return `404` for a report the official does not own.
+
+### POST /api/v1/reports/{report_id}/status
+
+Change the report's status.
+
+Request:
+
+    {
+      "status": "under_review",
+      "note": "Crew scheduled for Monday."
+    }
+
+- `status`: required, one of the report statuses.
+- `note`: optional, at most 500 characters. It is added to the event description, which is shown in the report's history.
+
+Allowed changes (`closed` is final):
+
+| From | To |
+|---|---|
+| reported | under_review, closed |
+| under_review | in_progress, closed |
+| in_progress | resolved, closed |
+| resolved | in_progress (reopened), closed |
+
+Who may change it:
+
+- An official may make any allowed change on any report.
+- The report's owner may only close it while it is `reported` or `under_review` (withdrawing it before work starts).
+
+Success: `200 OK`
+
+Response: the updated Report object. Records a `report_status_changed` event.
+
+The submission lock does not apply: the status tracks the authority's work, which continues after submission.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+- `403 Forbidden` with code `STATUS_CHANGE_FORBIDDEN`: The user may see the report but not make this change.
+- `409 Conflict` with code `INVALID_STATUS_TRANSITION`: The change is not in the table above, including setting the current status again.
+- `422 Unprocessable Entity`: Unknown status, missing status, or a note that is too long.
 
 ### PATCH /api/v1/reports/{report_id}
 
@@ -455,7 +498,7 @@ A successful API response must not falsely imply that an external authority rece
 
 ### GET /api/v1/reports/{report_id}/events
 
-Retrieve the report's event history, oldest first.
+Retrieve the report's event history, oldest first. Available to the report's owner and to officials.
 
 Success: `200 OK`
 
