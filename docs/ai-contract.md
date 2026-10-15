@@ -1,6 +1,6 @@
 # CivicFix AI — AI Input/Output Contract
 
-**Status:** Initial proposal — team agreement required
+**Status:** Aligned with database-schema.md and api-contract.md
 
 ## 1. Purpose
 
@@ -11,7 +11,7 @@ The AI workflow analyzes citizen-provided civic reports and returns structured s
 - Authority matching
 - Complaint drafting
 
-The AI does not independently submit complaints, confirm official receipt, or declare issues resolved.
+The AI does not independently submit complaints, confirm official receipt, or declare issues resolved. Every output is a suggestion for the citizen to review.
 
 ## 2. Input schema
 
@@ -41,11 +41,12 @@ Rules:
 
 - `report_id` identifies the report being analyzed.
 - The title and description originate from the citizen.
-- The category may be null when the citizen has not selected one.
+- `category` is null when the citizen has not set one. Otherwise it is one of the categories in database-schema.md section 2; it is never `unknown`.
 - Location fields may be null if unavailable.
-- Evidence descriptions are optional text metadata, not proof that an image has been correctly interpreted.
-- `available_authorities` must come from the backend's maintained directory.
+- `evidence_descriptions` is always an empty list until evidence uploads are implemented (database-schema.md section 11). When available, these are citizen-provided text, not proof that an image has been correctly interpreted.
+- `available_authorities` contains only verified authorities from the backend's maintained directory. Unverified authorities are never sent to the AI, so every entry has `verification_status` set to `verified`.
 - The AI must not invent authority records or change their verification status.
+- The backend stores this exact input in `agent_runs.input_snapshot`.
 
 ## 3. Output schema
 
@@ -67,7 +68,6 @@ The AI workflow returns a structured object:
       ],
       "authority_suggestion": {
         "authority_id": null,
-        "verification_status": "unverified",
         "reason": "No matching verified authority was identified."
       },
       "complaint_draft": {
@@ -83,35 +83,35 @@ The AI workflow returns a structured object:
 
 The values above are illustrative examples, not real authority data or guaranteed model confidence.
 
+This object is returned unchanged as `result` by the analyze endpoint (api-contract.md section 5) and stored in `agent_runs.result`.
+
 ## 4. Allowed categories
 
-Initial categories:
+`suggested_category.value` must be either:
 
-- road_damage
-- garbage
-- streetlight
-- other
-- unknown
+- one of the categories in database-schema.md section 2, or
+- `unknown`, when the report does not contain enough information to classify it.
 
-The backend must validate the returned category against this list.
+The backend validates the value. `unknown` is never stored as a report's category, and a suggested category is applied to the report only after the citizen accepts it.
 
 ## 5. Output rules
 
-- The AI must return the report identifier it received.
+- The AI must return the `report_id` it received.
 - The AI must not invent missing details.
 - Unknown information must remain unknown or be identified as missing.
-- Confidence must be a numeric value between 0 and 1 when supplied.
-- Authority suggestions must refer to an authority supplied by the backend.
-- A verified authority may be suggested only when the matching directory record is verified and applicable.
-- If no suitable authority is found, return no authority ID and explain the uncertainty.
-- Complaint drafts must be clearly labeled as AI-generated drafts.
-- Every draft requires citizen review and explicit approval before external submission.
-- AI analysis must never claim an official complaint was submitted or resolved.
+- `confidence` is a number between 0 and 1, or null when no confidence is available.
+- `authority_suggestion.authority_id` must be the ID of an authority in `available_authorities`, or null.
+- Suggest an authority only when its `supported_categories` include the suggested category and its region applies to the report's location.
+- The output does not state an authority's verification status. The backend and frontend read it from the directory record.
+- If no suitable authority is found, return a null `authority_id` and explain the uncertainty in `reason`.
+- `complaint_draft.requires_approval` is always `true`. Every draft requires citizen review and explicit approval before external submission.
+- The backend stores AI drafts with source `ai`, and the frontend labels them as AI-generated.
+- The draft text and all other output must never claim that an official complaint was submitted, received, or resolved.
 - The workflow must return structured data, not unstructured prose alone.
 
 ## 6. Error handling
 
-If analysis fails, the workflow should return a controlled error that the backend can record.
+If analysis fails, the workflow returns a controlled error that the backend can record.
 
 Example:
 
@@ -122,17 +122,20 @@ Example:
       }
     }
 
-Do not include API keys, private credentials, hidden reasoning traces, or sensitive internal data in error messages.
+- Output that fails schema validation is treated the same as a failed analysis.
+- The backend checks that `authority_suggestion.authority_id` is null or one of the IDs it sent in `available_authorities`. A mismatch is treated as a failed analysis, the same as invalid output.
+- In all of these cases the backend stores the run with status `failed`, records an `ai_analysis_failed` event, creates no draft, and returns `502 Bad Gateway` (api-contract.md section 5).
+- Do not include API keys, private credentials, hidden reasoning traces, or sensitive internal data in error messages.
 
-## 7. Responsibilities
+## 7. Component responsibilities
 
-- AI developer: classification, missing-field detection, authority matching against supplied records, draft generation, output validation, and evaluation.
-- Backend developer: authentication, authorization, data validation, persistence, API responses, approval enforcement, and submission-state tracking.
-- Frontend developer: clearly display AI suggestions, uncertainty, missing information, and approval controls.
+- AI workflow: classification, missing-field detection, authority matching against the supplied records, and draft generation.
+- Backend: authentication, authorization, building the input, validating the output, persistence, API responses, approval enforcement, and submission-state tracking.
+- Frontend: clearly display AI suggestions, uncertainty, missing information, AI-generated labels, and approval controls.
 
 ## 8. Integration requirements
 
-- The AI workflow should initially be callable as a Python function.
-- Use the same input/output fields in local tests and backend integration.
-- Validate the output using a defined schema before storing or returning it.
-- Agree on changes to this document with all teammates before changing the interface.
+- The AI workflow is initially a Python function called by the backend.
+- Input and output are defined as Pydantic models, used in both local tests and backend integration.
+- The backend validates the output against the output model, including the authority ID check in section 6, before storing or returning it.
+- When this contract changes, update this document, database-schema.md, and api-contract.md together.
