@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Authority, Report, ReportEvent
@@ -138,6 +139,17 @@ def test_event_stores_metadata_and_optional_actor(db_session, user):
     assert event.actor_user_id is None
     assert event.event_metadata == {"old_status": "reported"}
     assert event.created_at.tzinfo is not None
+
+
+def test_event_without_metadata_stores_sql_null(db_session, user):
+    # Guards against None being stored as the JSON value null instead.
+    report = save(db_session, make_report(user))
+    event = save(db_session, make_event(report, event_metadata=None))
+
+    is_sql_null = db_session.scalar(
+        select(ReportEvent.event_metadata.is_(None)).where(ReportEvent.id == event.id)
+    )
+    assert is_sql_null is True
 
 
 @pytest.mark.parametrize("field", ["event_type", "description"])

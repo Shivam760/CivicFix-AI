@@ -32,7 +32,8 @@ class ReportEvent(Base):
     event_type: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(Text)
     # Named event_metadata because "metadata" is reserved by SQLAlchemy models.
-    event_metadata: Mapped[dict | None] = mapped_column(JSONB)
+    # none_as_null: Python None is stored as SQL NULL, not as the JSON value null.
+    event_metadata: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

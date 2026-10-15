@@ -9,6 +9,10 @@ SUBMISSION_STATUSES = ("not_submitted", "pending", "confirmed", "failed", "unkno
 
 VERIFICATION_STATUSES = ("verified", "unverified")
 
+RUN_STATUSES = ("pending", "running", "completed", "failed")
+
+DRAFT_SOURCES = ("ai", "citizen")
+
 
 def sql_list(values: tuple[str, ...]) -> str:
     """Render values for a CHECK constraint, e.g. "'verified', 'unverified'"."""

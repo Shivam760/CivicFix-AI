@@ -1,7 +1,16 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Double, ForeignKey, String, Text, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Double,
+    ForeignKey,
+    ForeignKeyConstraint,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -14,10 +23,7 @@ from app.models.choices import (
 
 
 class Report(Base):
-    """A civic issue recorded by a citizen (database-schema.md section 4).
-
-    The approval columns are added together with complaint_drafts.
-    """
+    """A civic issue recorded by a citizen (database-schema.md section 4)."""
 
     __tablename__ = "reports"
     __table_args__ = (
@@ -40,6 +46,23 @@ class Report(Base):
             " OR (external_reference IS NULL AND submitted_at IS NULL)",
             name="submission_details_only_when_confirmed",
         ),
+        # The three approval columns are filled only while an approval is valid.
+        CheckConstraint(
+            "(approved_draft_id IS NULL AND approved_at IS NULL AND approved_by_user_id IS NULL)"
+            " OR (approved_draft_id IS NOT NULL AND approved_at IS NOT NULL"
+            " AND approved_by_user_id IS NOT NULL)",
+            name="approval_all_or_nothing",
+        ),
+        # The approved draft must belong to this report. use_alter=True because
+        # reports and complaint_drafts reference each other: the key is added
+        # after both tables exist.
+        ForeignKeyConstraint(
+            ["id", "approved_draft_id"],
+            ["complaint_drafts.report_id", "complaint_drafts.id"],
+            name="fk_reports_approved_draft_same_report",
+            ondelete="RESTRICT",
+            use_alter=True,
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -57,6 +80,11 @@ class Report(Base):
     longitude: Mapped[float | None] = mapped_column(Double)
     authority_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("authorities.id", ondelete="RESTRICT"), index=True
+    )
+    approved_draft_id: Mapped[uuid.UUID | None]
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT")
     )
     submission_status: Mapped[str] = mapped_column(
         String(30), default="not_submitted", server_default="not_submitted"

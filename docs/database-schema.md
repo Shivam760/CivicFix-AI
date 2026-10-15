@@ -220,11 +220,17 @@ CHECK constraints:
 - complaint_drafts.agent_run_id is not null when source is ai, and null when source is citizen.
 - reports.approved_draft_id, reports.approved_at, and reports.approved_by_user_id are either all null or all set.
 - reports.external_reference and reports.submitted_at are null unless submission_status is confirmed.
+- agent_runs with status completed have both result and completed_at.
 - authorities.supported_categories contains only values from section 2 (no null elements).
 - authorities.verification_status is verified only when last_verified_at is set.
 - complaint_drafts.version is at least 1.
 - Latitude is between -90 and 90; longitude is between -180 and 180.
 - Required text fields are not blank.
+
+Same-report foreign keys (composite keys that PostgreSQL enforces):
+
+- reports (id, approved_draft_id) references complaint_drafts (report_id, id): the approved draft belongs to the same report.
+- complaint_drafts (report_id, agent_run_id) references agent_runs (report_id, id): an AI draft's run belongs to the same report.
 
 Additional rules:
 

@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.database import engine
-from app.models import User
+from app.models import Report, User
 
 
 @pytest.fixture
@@ -38,3 +38,16 @@ def user(db_session):
     db_session.add(user)
     db_session.flush()
     return user
+
+
+@pytest.fixture
+def report(db_session, user):
+    """A saved report owned by the user fixture."""
+    report = Report(
+        user_id=user.id,
+        title="Pothole near the market",
+        description="A large pothole is making the road unsafe.",
+    )
+    db_session.add(report)
+    db_session.flush()
+    return report
