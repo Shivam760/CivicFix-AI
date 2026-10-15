@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 # Load settings from backend/.env, wherever the command is run from.
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +28,9 @@ DATABASE_URL = URL.create(
 )
 
 engine = create_engine(DATABASE_URL)
+
+# Creates one Session per request (see app/dependencies.py).
+SessionLocal = sessionmaker(bind=engine)
 
 
 def check_database_connection() -> str:

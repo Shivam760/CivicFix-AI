@@ -1,10 +1,39 @@
+import os
 import uuid
+from pathlib import Path
 
-import pytest
-from sqlalchemy.orm import Session
+from dotenv import load_dotenv
 
-from app.database import engine
-from app.models import Report, User
+# --- Point every test at the test database ------------------------------------
+# This runs before anything imports app.database, so the engine connects to
+# TEST_DB_NAME instead of the development database. load_dotenv never
+# overwrites a variable that is already set, so app.database keeps this value.
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BACKEND_DIR / ".env")
+_dev_db = os.environ.get("DB_NAME")
+_test_db = os.environ.get("TEST_DB_NAME")
+if not _test_db:
+    raise RuntimeError("Set TEST_DB_NAME in backend/.env (see backend/.env.example).")
+if _test_db == _dev_db:
+    raise RuntimeError("TEST_DB_NAME must differ from DB_NAME, or tests would use real data.")
+os.environ["DB_NAME"] = _test_db
+
+import pytest  # noqa: E402
+from alembic import command  # noqa: E402
+from alembic.config import Config  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
+
+from app.database import engine  # noqa: E402
+from app.dependencies import get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import Report, User  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def migrated_test_database():
+    """Bring the test database up to the latest migration once per test run."""
+    command.upgrade(Config(str(BACKEND_DIR / "alembic.ini")), "head")
 
 
 @pytest.fixture
@@ -12,7 +41,7 @@ def db_session():
     """A database session whose changes are always rolled back.
 
     Tests really insert rows, so PostgreSQL checks every constraint, but
-    nothing is ever committed to civicfix_db.
+    nothing is ever committed.
     """
     connection = engine.connect()
     transaction = connection.begin()
@@ -25,6 +54,15 @@ def db_session():
         session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def client(db_session):
+    """An HTTP client for the app. Its requests use the rolled-back db_session."""
+    app.dependency_overrides[get_db] = lambda: db_session
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
