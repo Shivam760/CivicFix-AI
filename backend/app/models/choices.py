@@ -20,6 +20,12 @@ RUN_STATUSES = ("pending", "running", "completed", "failed")
 
 DRAFT_SOURCES = ("ai", "citizen")
 
+# repair_photo is reserved for officials' after-repair photos (not used by the API yet).
+EVIDENCE_KINDS = ("report_photo", "repair_photo")
+
+# Image types accepted for upload; the stored file always has one of these.
+EVIDENCE_CONTENT_TYPES = ("image/jpeg", "image/png", "image/webp")
+
 
 def sql_list(values: tuple[str, ...]) -> str:
     """Render values for a CHECK constraint, e.g. "'verified', 'unverified'"."""

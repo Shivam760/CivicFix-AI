@@ -237,7 +237,7 @@ CHECK constraints:
 - authorities.supported_categories contains only values from section 2 (no null elements).
 - authorities.verification_status is verified only when last_verified_at is set.
 - complaint_drafts.version is at least 1.
-- evidence.kind and evidence.content_type use their listed values; evidence.file_size_bytes is positive.
+- evidence.kind and evidence.content_type use their listed values; evidence.file_size_bytes is positive; evidence.description is null or not blank.
 - Latitude is between -90 and 90; longitude is between -180 and 180.
 - Required text fields are not blank.
 
