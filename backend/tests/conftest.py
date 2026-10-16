@@ -19,9 +19,14 @@ if _test_db == _dev_db:
 os.environ["DB_NAME"] = _test_db
 
 # Tests never call a real AI service, whatever backend/.env says: use the fake
-# analyzer, and remove the real Gemini key so no test can reach Google by accident.
+# analyzer, and blank the real Gemini key so no test can reach Google by accident.
+# Keys are set to "", not removed, so app.config's load_dotenv can't fill them back in.
 os.environ["AI_PROVIDER"] = "fake"
-os.environ.pop("GEMINI_API_KEY", None)
+os.environ["GEMINI_API_KEY"] = ""
+# Tests never touch real file storage either: the client fixture swaps in an
+# in-memory fake, and without it get_storage answers 503 instead of writing files.
+os.environ["STORAGE_PROVIDER"] = "none-in-tests"
+os.environ["SUPABASE_SECRET_KEY"] = ""
 # Empty means the default origins (the Vite dev server), whatever backend/.env says.
 # It is set, not removed, so app.config's load_dotenv can't fill it back in.
 os.environ["CORS_ORIGINS"] = ""
@@ -37,6 +42,35 @@ from app.dependencies import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Report, User  # noqa: E402
 from app.security import create_access_token  # noqa: E402
+from app.storage import StorageError, get_storage  # noqa: E402
+
+
+class MemoryStorage:
+    """A fake storage that keeps files in a dict. fail=True makes every call fail."""
+
+    def __init__(self):
+        self.files: dict[str, bytes] = {}
+        self.fail = False
+
+    def _check(self):
+        if self.fail:
+            raise StorageError("Simulated storage failure.")
+
+    def save(self, key: str, data: bytes, content_type: str) -> None:
+        self._check()
+        if key in self.files:
+            raise StorageError("Key already used.")
+        self.files[key] = data
+
+    def load(self, key: str) -> bytes:
+        self._check()
+        if key not in self.files:
+            raise StorageError("No such file.")
+        return self.files[key]
+
+    def delete(self, key: str) -> None:
+        self._check()
+        self.files.pop(key, None)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -66,9 +100,17 @@ def db_session():
 
 
 @pytest.fixture
-def client(db_session):
-    """An HTTP client for the app. Its requests use the rolled-back db_session."""
+def storage():
+    """The in-memory file storage used by the client fixture's requests."""
+    return MemoryStorage()
+
+
+@pytest.fixture
+def client(db_session, storage):
+    """An HTTP client for the app. Its requests use the rolled-back db_session
+    and the in-memory storage."""
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_storage] = lambda: storage
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
