@@ -30,7 +30,11 @@ Responsible for authentication, authorization, request validation, report manage
 
 ### PostgreSQL Database
 
-Stores users, reports, complaint drafts, authorities, report events, and AI analysis runs. Evidence metadata is planned future work.
+Stores users, reports, complaint drafts, authorities, report events, AI analysis runs, and evidence metadata.
+
+### File Storage
+
+Stores evidence photos in a private Supabase Storage bucket. Only the backend holds the storage credentials; the frontend downloads photos through the API, which checks access first. The provider is chosen with the `STORAGE_PROVIDER` setting (`supabase`, or `local` for development without internet); tests use an in-memory fake.
 
 ### AI Workflow
 
@@ -76,6 +80,6 @@ Design documents:
 
 The first version will focus on report creation and tracking, a seeded authority directory (each record marked verified or unverified), AI-assisted analysis, versioned complaint drafts, citizen approval, and transparent event history.
 
-Evidence uploads and detailed jurisdiction rules are postponed.
+Citizens can attach photos to their reports. Detailed jurisdiction rules are postponed.
 
 External complaint submission depends on the availability of a real, authorized integration. Without one, the application must clearly indicate that external submission is unavailable.

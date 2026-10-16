@@ -43,7 +43,7 @@ Rules:
 - The title and description originate from the citizen.
 - `category` is null when the citizen has not set one. Otherwise it is one of the categories in database-schema.md section 2; it is never `unknown`.
 - Location fields may be null if unavailable.
-- `evidence_descriptions` is always an empty list until evidence uploads are implemented (database-schema.md section 11). When available, these are citizen-provided text, not proof that an image has been correctly interpreted.
+- `evidence_descriptions` lists the descriptions of the report's `report_photo` evidence (database-schema.md section 11), oldest first, skipping photos without a description. It is an empty list when there are none. These are citizen-provided text, not proof of what a photo shows. The images themselves are not sent to the AI.
 - `available_authorities` contains only verified authorities from the backend's maintained directory. Unverified authorities are never sent to the AI, so every entry has `verification_status` set to `verified`.
 - The AI must not invent authority records or change their verification status.
 - The backend stores this exact input in `agent_runs.input_snapshot`.

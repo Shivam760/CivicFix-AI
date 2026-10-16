@@ -41,6 +41,8 @@ Common HTTP status codes:
 - `403 Forbidden`: Authenticated user lacks permission.
 - `404 Not Found`: Resource does not exist or is not accessible.
 - `409 Conflict`: Operation conflicts with the current resource state.
+- `413 Content Too Large`: An uploaded file exceeds the size limit.
+- `415 Unsupported Media Type`: An uploaded file is not an allowed type.
 - `422 Unprocessable Entity`: Request validation failed.
 - `500 Internal Server Error`: Unexpected server error.
 - `502 Bad Gateway`: The AI workflow or submission integration returned a failure.
@@ -160,6 +162,7 @@ A report is **locked** while its `submission_status` is `pending`, `confirmed`, 
 - `POST /api/v1/reports/{report_id}/drafts`
 - `POST /api/v1/reports/{report_id}/analyze` (because analysis creates a new draft)
 - `POST /api/v1/reports/{report_id}/approve`
+- `POST /api/v1/reports/{report_id}/evidence`
 
 This keeps the stored report, drafts, and approval identical to what was sent to the authority.
 
@@ -223,7 +226,7 @@ Success: `200 OK`
 
 Response: a Report object.
 
-Officials may read any report and its event history, and change its status. They cannot edit a report, see or create its drafts, approve, analyze, or submit; those endpoints return `404` for a report the official does not own.
+Officials may read any report, its event history, and its evidence photos, and change its status. They cannot edit a report, see or create its drafts, approve, analyze, submit, or upload evidence; those endpoints return `404` for a report the official does not own.
 
 ### POST /api/v1/reports/{report_id}/status
 
@@ -551,13 +554,93 @@ Response:
 - `verification_status` is `verified` or `unverified`.
 - Example data is illustrative only. Records must be verified before being labeled as verified.
 
-## 10. Future work
+## 10. Evidence
 
-- Evidence uploads are postponed. Endpoints will be added when the evidence table (database-schema.md section 11) is implemented.
+Photos attached to a report. Storage and upload rules are in database-schema.md section 11.
+
+### Evidence object
+
+    {
+      "id": "UUID",
+      "report_id": "UUID",
+      "kind": "report_photo",
+      "file_name": "pothole.jpg",
+      "content_type": "image/jpeg",
+      "file_size_bytes": 482133,
+      "description": "The pothole seen from the bus stop.",
+      "uploaded_by_user_id": "UUID",
+      "uploaded_at": "2026-10-17T10:00:00Z"
+    }
+
+- `kind` is `report_photo` or `repair_photo`. Only `report_photo` can be uploaded for now.
+- There is no public file URL. The file is downloaded through the `/file` endpoint below.
+
+### POST /api/v1/reports/{report_id}/evidence
+
+Attach a photo to the citizen's own report.
+
+Request: `multipart/form-data` with these fields:
+
+- `file`: required, a JPEG, PNG, or WebP image of at most 5 MB.
+- `description`: optional, at most 500 characters.
+
+Success: `201 Created`
+
+Response: the new Evidence object, with `kind` set to `report_photo`. Records an `evidence_added` event.
+
+- Image metadata (including GPS location) is removed before the file is stored, so `file_size_bytes` may differ from the uploaded size.
+- Adding a photo does not invalidate an approval, because a submission sends only the approved draft text.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not the user's own.
+- `409 Conflict` with code `REPORT_LOCKED`: The report is locked (see "Locked reports").
+- `409 Conflict` with code `EVIDENCE_LIMIT_REACHED`: The report already has 5 photos.
+- `413 Content Too Large` with code `FILE_TOO_LARGE`: The file is larger than 5 MB.
+- `415 Unsupported Media Type` with code `UNSUPPORTED_FILE_TYPE`: The file is not a valid JPEG, PNG, or WebP image.
+- `422 Unprocessable Entity`: The file is missing, or the description is too long.
+- `503 Service Unavailable` with code `STORAGE_UNAVAILABLE`: The file could not be saved. Nothing is recorded; try again.
+
+### GET /api/v1/reports/{report_id}/evidence
+
+List the report's evidence, oldest first. Available to the report's owner and to officials.
+
+Success: `200 OK`
+
+Response:
+
+    {
+      "items": []
+    }
+
+Each item is an Evidence object.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+
+### GET /api/v1/reports/{report_id}/evidence/{evidence_id}/file
+
+Download one photo. Available to the report's owner and to officials.
+
+Success: `200 OK`. The body is the image itself (not JSON), with the evidence's `content_type` as the `Content-Type` header and `Cache-Control: private`.
+
+Because this endpoint needs the `Authorization` header, a plain `<img src>` cannot load it. The frontend fetches the file with the header and displays it through an object URL (`URL.createObjectURL`).
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+- `404 Not Found` with code `EVIDENCE_NOT_FOUND`: No evidence with this ID belongs to the report.
+- `503 Service Unavailable` with code `STORAGE_UNAVAILABLE`: The file could not be read from storage.
+
+## 11. Future work
+
+- Officials' after-repair photos (`repair_photo`) and citizen verification of repairs.
+- Deleting evidence uploaded by mistake.
 - Detailed jurisdiction matching for authorities.
 - Retry behavior for failed submissions.
 
-## 11. Implementation notes
+## 12. Implementation notes
 
 - The frontend uses these interfaces, or local mocks with exactly the same shapes.
 - The AI workflow must return structured output matching ai-contract.md section 3.
