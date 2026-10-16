@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     BigInteger,
@@ -59,6 +59,11 @@ class Evidence(Base):
     content_type: Mapped[str] = mapped_column(String(100))
     file_size_bytes: Mapped[int] = mapped_column(BigInteger)
     description: Mapped[str | None] = mapped_column(Text)
+    # Set in Python when the row is created, so photos added in one transaction
+    # (as in tests) still get increasing times; func.now() would give them all
+    # the transaction's start time. The server default covers rows from SQL.
     uploaded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
     )

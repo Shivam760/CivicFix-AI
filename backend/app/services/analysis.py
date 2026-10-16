@@ -17,6 +17,7 @@ from app.ai.contract import (
 from app.errors import ApiError
 from app.models import AgentRun, Authority, ComplaintDraft, Report, User
 from app.services.drafts import add_draft
+from app.services.evidence import report_photo_descriptions
 from app.services.reports import record_event
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ def build_input(db: Session, report: Report) -> AnalysisInput:
         location_text=report.location_text,
         latitude=report.latitude,
         longitude=report.longitude,
-        evidence_descriptions=[],
+        evidence_descriptions=report_photo_descriptions(db, report),
         available_authorities=[
             {
                 "id": a.id,

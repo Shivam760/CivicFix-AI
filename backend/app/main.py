@@ -4,7 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import cors_origins
 from app.errors import register_error_handlers
-from app.routers import analysis, auth, authorities, drafts, events, reports, submission
+from app.routers import (
+    analysis,
+    auth,
+    authorities,
+    drafts,
+    events,
+    evidence,
+    reports,
+    submission,
+)
 
 API_PREFIX = "/api/v1"
 
@@ -28,6 +37,7 @@ app.include_router(authorities.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(drafts.router, prefix=API_PREFIX)
 app.include_router(events.router, prefix=API_PREFIX)
+app.include_router(evidence.router, prefix=API_PREFIX)
 app.include_router(analysis.router, prefix=API_PREFIX)
 app.include_router(submission.router, prefix=API_PREFIX)
 

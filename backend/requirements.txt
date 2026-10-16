@@ -10,3 +10,4 @@ email-validator
 google-genai
 httpx
 pillow
+python-multipart
