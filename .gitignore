@@ -250,3 +250,6 @@ Thumbs.db
 
 # Local VS Code settings
 .vscode/
+
+# Evidence photos saved by STORAGE_PROVIDER=local
+backend/uploads/
