@@ -87,6 +87,44 @@ def test_unknown_role_rejected(db_session):
         db_session.flush()
 
 
+def test_new_user_has_no_home_location(db_session):
+    user = make_user()
+    db_session.add(user)
+    db_session.flush()
+
+    assert user.home_latitude is None
+    assert user.home_longitude is None
+
+
+def test_home_location_accepted(db_session):
+    db_session.add(make_user(home_latitude=30.7, home_longitude=76.8))
+    db_session.flush()
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [{"home_latitude": 30.7}, {"home_longitude": 76.8}],
+    ids=["latitude_only", "longitude_only"],
+)
+def test_half_a_home_location_rejected(db_session, fields):
+    db_session.add(make_user(**fields))
+    with pytest.raises(IntegrityError, match="ck_users_home_location_complete"):
+        db_session.flush()
+
+
+@pytest.mark.parametrize(
+    "fields, constraint",
+    [
+        ({"home_latitude": 90.1, "home_longitude": 0}, "home_latitude_range"),
+        ({"home_latitude": 0, "home_longitude": -180.1}, "home_longitude_range"),
+    ],
+)
+def test_home_location_out_of_range_rejected(db_session, fields, constraint):
+    db_session.add(make_user(**fields))
+    with pytest.raises(IntegrityError, match=f"ck_users_{constraint}"):
+        db_session.flush()
+
+
 def test_name_longer_than_100_characters_rejected(db_session):
     db_session.add(make_user(name="a" * 101))
     with pytest.raises(DataError, match="too long"):

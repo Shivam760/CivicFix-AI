@@ -13,6 +13,7 @@ from app.routers import (
     evidence,
     reports,
     submission,
+    verifications,
 )
 
 API_PREFIX = "/api/v1"
@@ -40,6 +41,7 @@ app.include_router(events.router, prefix=API_PREFIX)
 app.include_router(evidence.router, prefix=API_PREFIX)
 app.include_router(analysis.router, prefix=API_PREFIX)
 app.include_router(submission.router, prefix=API_PREFIX)
+app.include_router(verifications.router, prefix=API_PREFIX)
 
 
 @app.get("/")

@@ -6,6 +6,7 @@ its events are saved together in one transaction.
 
 import uuid
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import ApiError
@@ -32,11 +33,14 @@ def get_visible_report(db: Session, report_id: uuid.UUID, user: User) -> Report:
     return report
 
 
-# Allowed status changes (api-contract.md section 4). closed is final.
+# Allowed status changes through this endpoint (api-contract.md section 4).
+# closed is final. resolved is missing on purpose: only residents' votes
+# lead there, and an official can't close a report that awaits their votes.
 STATUS_TRANSITIONS = {
     "reported": {"under_review", "closed"},
     "under_review": {"in_progress", "closed"},
-    "in_progress": {"resolved", "closed"},
+    "in_progress": {"awaiting_verification", "closed"},  # awaiting = repair claimed
+    "awaiting_verification": {"in_progress"},  # claim withdrawn
     "resolved": {"in_progress", "closed"},  # in_progress again = reopened
     "closed": set(),
 }
@@ -71,6 +75,12 @@ def change_status(
             "STATUS_CHANGE_FORBIDDEN",
             "Only an official can make this status change.",
         )
+    if new_status == "awaiting_verification" and repair_photos_this_round(db, report) == 0:
+        raise ApiError(
+            409,
+            "REPAIR_PHOTO_REQUIRED",
+            "Upload an after-repair photo before claiming the repair.",
+        )
 
     report.status = new_status
     # The note goes in the description, which the events API returns;
@@ -81,6 +91,33 @@ def change_status(
     record_event(
         db, report, "report_status_changed", description, user,
         {"from": old_status, "to": new_status},
+    )
+
+
+def repair_photos_this_round(db: Session, report: Report) -> int:
+    """How many repair photos were added since the report last entered in_progress.
+
+    The round is found in the event history (database-schema.md section 11):
+    events are numbered by sequence, so "after" never depends on equal timestamps.
+    """
+    round_start = db.scalar(
+        select(func.max(ReportEvent.sequence)).where(
+            ReportEvent.report_id == report.id,
+            ReportEvent.event_type == "report_status_changed",
+            ReportEvent.event_metadata["to"].astext == "in_progress",
+        )
+    )
+    return db.scalar(
+        select(func.count())
+        .select_from(ReportEvent)
+        .where(
+            ReportEvent.report_id == report.id,
+            ReportEvent.event_type == "evidence_added",
+            ReportEvent.event_metadata["kind"].astext == "repair_photo",
+            # No such status event (a report put in_progress outside the API):
+            # the round started at the beginning.
+            ReportEvent.sequence > (round_start or 0),
+        )
     )
 
 

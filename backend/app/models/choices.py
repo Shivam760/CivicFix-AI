@@ -6,7 +6,16 @@ ISSUE_CATEGORIES = ("road_damage", "garbage", "streetlight", "other")
 # Registration always creates citizens; scripts/set_role.py makes officials.
 USER_ROLES = ("citizen", "official")
 
-REPORT_STATUSES = ("reported", "under_review", "in_progress", "resolved", "closed")
+# awaiting_verification: an official claimed the repair; residents' votes decide
+# whether it becomes resolved (database-schema.md section 12).
+REPORT_STATUSES = (
+    "reported",
+    "under_review",
+    "in_progress",
+    "awaiting_verification",
+    "resolved",
+    "closed",
+)
 
 SUBMISSION_STATUSES = ("not_submitted", "pending", "confirmed", "failed", "unknown")
 
@@ -16,11 +25,14 @@ LOCKED_SUBMISSION_STATUSES = ("pending", "confirmed", "unknown")
 
 VERIFICATION_STATUSES = ("verified", "unverified")
 
+# A resident's answer about a claimed repair (database-schema.md section 12).
+VERIFICATION_VERDICTS = ("fixed", "still_broken")
+
 RUN_STATUSES = ("pending", "running", "completed", "failed")
 
 DRAFT_SOURCES = ("ai", "citizen")
 
-# repair_photo is reserved for officials' after-repair photos (not used by the API yet).
+# report_photo: the citizen's photo of the problem; repair_photo: an official's after-repair photo.
 EVIDENCE_KINDS = ("report_photo", "repair_photo")
 
 # Image types accepted for upload; the stored file always has one of these.

@@ -71,9 +71,12 @@ Response:
       "name": "Aarav Sharma",
       "email": "aarav@example.com",
       "role": "citizen",
+      "home_latitude": null,
+      "home_longitude": null,
       "created_at": "2026-10-14T10:00:00Z"
     }
 
+- `home_latitude` and `home_longitude` are the user's own saved home location, or null (see `PUT /api/v1/auth/me/home-location`). They appear only in the user's own account responses.
 - `role` is `citizen` or `official`. Registration always creates a citizen; any `role` sent in the request is ignored. Officials are created by an administrator script (database-schema.md section 3).
 
 Validation:
@@ -124,6 +127,35 @@ Success: `200 OK`
 
 Response: the same shape as the register response.
 
+### PUT /api/v1/auth/me/home-location
+
+Save the logged-in user's home location. It is used only to find nearby repairs the user may verify (section 11) and is never shown to other users.
+
+Request:
+
+    {
+      "latitude": 30.7,
+      "longitude": 76.8
+    }
+
+- Both fields are required; `latitude` between -90 and 90, `longitude` between -180 and 180.
+
+Success: `200 OK`
+
+Response: the user, in the same shape as `GET /api/v1/auth/me`.
+
+Errors:
+
+- `422 Unprocessable Entity`: A field is missing or out of range.
+
+### DELETE /api/v1/auth/me/home-location
+
+Remove the saved home location. The user then sees no nearby repairs (they can still verify their own reports).
+
+Success: `200 OK`
+
+Response: the user, with `home_latitude` and `home_longitude` set to null.
+
 ## 4. Reports
 
 ### Report object
@@ -149,7 +181,7 @@ Every endpoint that returns a report uses this shape:
       "updated_at": "2026-10-14T10:00:00Z"
     }
 
-- `status` is one of: reported, under_review, in_progress, resolved, closed.
+- `status` is one of: reported, under_review, in_progress, awaiting_verification, resolved, closed. `awaiting_verification` means an official reported the repair and residents are checking it; `resolved` means residents confirmed it (section 11), which is not proof.
 - `submission_status` is one of: not_submitted, pending, confirmed, failed, unknown.
 - `approved_draft_id` and `approved_at` are set only while a valid approval exists.
 - `external_reference` and `submitted_at` are set only after a confirmed submission.
@@ -226,7 +258,7 @@ Success: `200 OK`
 
 Response: a Report object.
 
-Officials may read any report, its event history, and its evidence photos, and change its status. They cannot edit a report, see or create its drafts, approve, analyze, submit, or upload evidence; those endpoints return `404` for a report the official does not own.
+Officials may read any report, its event history, and its evidence photos, change its status, and upload after-repair photos. They cannot edit a report, see or create its drafts, approve, analyze, submit, or upload the citizen's report photos; those endpoints return `404` for a report the official does not own.
 
 ### POST /api/v1/reports/{report_id}/status
 
@@ -248,13 +280,18 @@ Allowed changes (`closed` is final):
 |---|---|
 | reported | under_review, closed |
 | under_review | in_progress, closed |
-| in_progress | resolved, closed |
+| in_progress | awaiting_verification (repair claimed), closed |
+| awaiting_verification | in_progress (claim withdrawn) |
 | resolved | in_progress (reopened), closed |
+
+`resolved` is not in the "To" column: only residents' votes move a report there (section 11). An official cannot close a report while it awaits verification, so the vote cannot be skipped. The votes can also send it back to `in_progress`.
 
 Who may change it:
 
 - An official may make any allowed change on any report.
 - The report's owner may only close it while it is `reported` or `under_review` (withdrawing it before work starts).
+
+Repair photo required: moving from `in_progress` to `awaiting_verification` needs at least one after-repair photo uploaded during the current repair round, that is, since the report last entered `in_progress` (see `POST /api/v1/reports/{report_id}/repair-photos`). After a reopen, a new photo is needed.
 
 Success: `200 OK`
 
@@ -267,6 +304,7 @@ Errors:
 - `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
 - `403 Forbidden` with code `STATUS_CHANGE_FORBIDDEN`: The user may see the report but not make this change.
 - `409 Conflict` with code `INVALID_STATUS_TRANSITION`: The change is not in the table above, including setting the current status again.
+- `409 Conflict` with code `REPAIR_PHOTO_REQUIRED`: Moving to `awaiting_verification` without a repair photo from the current repair round.
 - `422 Unprocessable Entity`: Unknown status, missing status, or a note that is too long.
 
 ### PATCH /api/v1/reports/{report_id}
@@ -572,7 +610,7 @@ Photos attached to a report. Storage and upload rules are in database-schema.md 
       "uploaded_at": "2026-10-17T10:00:00Z"
     }
 
-- `kind` is `report_photo` or `repair_photo`. Only `report_photo` can be uploaded for now.
+- `kind` is `report_photo` (the citizen's photo of the problem) or `repair_photo` (an official's after-repair photo). A repair photo is the official's claim, not proof that the problem is fixed.
 - There is no public file URL. The file is downloaded through the `/file` endpoint below.
 
 ### POST /api/v1/reports/{report_id}/evidence
@@ -601,9 +639,31 @@ Errors:
 - `422 Unprocessable Entity`: The file is missing, or the description is too long.
 - `503 Service Unavailable` with code `STORAGE_UNAVAILABLE`: The file could not be saved. Nothing is recorded; try again.
 
+### POST /api/v1/reports/{report_id}/repair-photos
+
+Attach an after-repair photo. Officials only, while the report is `in_progress`. Then the official moves the report to `awaiting_verification` with `POST /api/v1/reports/{report_id}/status`, and nearby residents check the repair (section 11).
+
+Request: `multipart/form-data` with the same fields and file rules as `POST /api/v1/reports/{report_id}/evidence`.
+
+Success: `201 Created`
+
+Response: the new Evidence object, with `kind` set to `repair_photo`. Records an `evidence_added` event.
+
+- The submission lock does not apply, as with status changes.
+- At most 5 repair photos per repair round. A round starts each time the report enters `in_progress`, so a reopened report can get new photos.
+- Image metadata is removed, as for report photos.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+- `403 Forbidden` with code `REPAIR_PHOTO_FORBIDDEN`: The user is not an official (for example, the report's owner).
+- `409 Conflict` with code `REPORT_NOT_IN_PROGRESS`: The report's status is not `in_progress`.
+- `409 Conflict` with code `EVIDENCE_LIMIT_REACHED`: 5 repair photos were already added in this round.
+- `413`, `415`, `422`, and `503` as for `POST /api/v1/reports/{report_id}/evidence`.
+
 ### GET /api/v1/reports/{report_id}/evidence
 
-List the report's evidence, oldest first. Available to the report's owner and to officials.
+List the report's evidence (both kinds), oldest first. Available to the report's owner and to officials.
 
 Success: `200 OK`
 
@@ -633,14 +693,112 @@ Errors:
 - `404 Not Found` with code `EVIDENCE_NOT_FOUND`: No evidence with this ID belongs to the report.
 - `503 Service Unavailable` with code `STORAGE_UNAVAILABLE`: The file could not be read from storage.
 
-## 11. Future work
+## 11. Repair verification
 
-- Officials' after-repair photos (`repair_photo`) and citizen verification of repairs.
+After an official claims a repair (status `awaiting_verification`), residents check it. The report's owner and citizens whose saved home location is within 2 km of the report vote `fixed` or `still_broken`. The rules and limits are in database-schema.md section 12. In short:
+
+- One vote per person per verification round; a vote cannot be changed.
+- The owner's `still_broken` vote, or 2 `still_broken` votes, sends the report back to `in_progress`.
+- Otherwise 2 `fixed` votes make it `resolved`. The owner's vote counts as one.
+- A report without latitude and longitude can only be verified by its owner, so the owner's single vote decides it (`fixed` makes it `resolved`).
+- Officials cannot vote. All `/verifications` endpoints return `403 Forbidden` with code `VERIFICATION_FORBIDDEN` for officials.
+
+Neighbours see only what they need to check the repair. They do not see who reported the problem, the drafts, the event history, or anyone's home location. A report is available through these endpoints only while it is `awaiting_verification` and the user may verify it; otherwise the response is `404 Not Found` with code `REPORT_NOT_FOUND`.
+
+### Verification request object
+
+    {
+      "report_id": "UUID",
+      "title": "Pothole near the market",
+      "description": "A large pothole is making the road unsafe.",
+      "category": "road_damage",
+      "location_text": "Near the main market",
+      "latitude": 30.7,
+      "longitude": 76.8,
+      "distance_km": 0.8,
+      "is_own_report": false,
+      "awaiting_since": "2026-10-18T09:00:00Z",
+      "my_vote": null,
+      "evidence": [
+        {
+          "id": "UUID",
+          "kind": "repair_photo",
+          "content_type": "image/jpeg",
+          "description": "Pothole filled with asphalt.",
+          "uploaded_at": "2026-10-18T08:55:00Z"
+        }
+      ]
+    }
+
+- `distance_km` is the distance between the report and the user's home, rounded to 0.1 km, or null when either location is missing (possible only for the user's own report).
+- `awaiting_since` is when the official claimed the repair.
+- `my_vote` is `fixed`, `still_broken`, or null if the user has not voted in this round.
+- `evidence` lists the report's photos of both kinds, oldest first, without uploader IDs or file names. Photos are downloaded through the `/file` endpoint below.
+- Vote counts are not shown, so earlier votes do not influence the next voter.
+
+### GET /api/v1/verifications
+
+List the repairs the user may verify (their own reports and nearby ones), oldest claim first, including ones they already voted on in this round.
+
+Success: `200 OK`
+
+Response:
+
+    {
+      "items": []
+    }
+
+Each item is a Verification request object.
+
+### GET /api/v1/verifications/{report_id}
+
+One Verification request object.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: see above.
+
+### GET /api/v1/verifications/{report_id}/evidence/{evidence_id}/file
+
+Download one of the report's photos, with the same response and errors as `GET /api/v1/reports/{report_id}/evidence/{evidence_id}/file`.
+
+### POST /api/v1/verifications/{report_id}/votes
+
+Vote on the claimed repair.
+
+Request:
+
+    {
+      "verdict": "fixed"
+    }
+
+- `verdict`: required, `fixed` or `still_broken`.
+
+Success: `201 Created`
+
+Response:
+
+    {
+      "verdict": "fixed",
+      "report_status": "awaiting_verification"
+    }
+
+`report_status` is the report's status after this vote (`awaiting_verification`, `resolved`, or `in_progress`). Records a `verification_vote_recorded` event. If the vote decides the outcome, it also records a `report_status_changed` event with no actor.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: see above.
+- `409 Conflict` with code `ALREADY_VOTED`: The user already voted in this round.
+- `422 Unprocessable Entity`: Missing or unknown verdict.
+
+## 12. Future work
+
+- Expiry for repairs that get too few verification votes.
 - Deleting evidence uploaded by mistake.
 - Detailed jurisdiction matching for authorities.
 - Retry behavior for failed submissions.
 
-## 12. Implementation notes
+## 13. Implementation notes
 
 - The frontend uses these interfaces, or local mocks with exactly the same shapes.
 - The AI workflow must return structured output matching ai-contract.md section 3.

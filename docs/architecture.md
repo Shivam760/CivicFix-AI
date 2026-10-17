@@ -51,7 +51,9 @@ AI outputs must be distinguishable from verified information. Authority records 
 5. The backend sends the report and the verified authorities from the directory to the AI workflow, validates the output, and stores the analysis run and a new complaint draft version.
 6. The citizen reviews the suggestions, may edit the draft (each edit creates a new version), and approves the latest version.
 7. An external submission is attempted only when a valid approval is recorded and an authorized integration is configured. Without an integration, the backend reports that submission is unavailable.
-8. The platform records each important action and its outcome as report events.
+8. Officials move the report through its statuses. To claim a repair, an official uploads an after-repair photo and moves the report to awaiting verification.
+9. The report's owner and residents whose saved home location is nearby vote "fixed" or "still broken". Enough "fixed" votes make the report resolved; "still broken" sends it back to the officials. Resolved means residents confirmed the repair, not that it is proven.
+10. The platform records each important action and its outcome as report events.
 
 ## 5. Project Setup
 
@@ -75,6 +77,8 @@ Design documents:
 - Reports are locked once a submission is pending, confirmed, or unknown.
 - Keep a record of important status changes and AI analysis runs.
 - Do not treat an AI suggestion as a verified fact.
+- A report becomes resolved only through residents' verification votes, never by an official's claim alone.
+- Users' home locations are private: used only to find nearby repairs, never shown to others.
 
 ## 7. MVP Scope
 

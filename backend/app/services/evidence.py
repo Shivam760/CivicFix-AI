@@ -1,8 +1,8 @@
 """Evidence photo rules (database-schema.md section 11, api-contract.md section 10).
 
 Like app/services/reports.py, these helpers work on the caller's session, but
-add_report_photo commits itself: the file in storage and the row must succeed
-or fail together.
+add_report_photo and add_repair_photo commit themselves: the file in storage
+and the row must succeed or fail together.
 """
 
 import logging
@@ -15,12 +15,13 @@ from sqlalchemy.orm import Session
 from app.errors import ApiError
 from app.models import Evidence, Report, User
 from app.services import images
-from app.services.reports import ensure_not_locked, record_event
+from app.services.reports import ensure_not_locked, record_event, repair_photos_this_round
 from app.storage import Storage, StorageError
 
 logger = logging.getLogger(__name__)
 
 MAX_REPORT_PHOTOS = 5
+MAX_REPAIR_PHOTOS_PER_ROUND = 5
 
 
 def storage_unavailable() -> ApiError:
@@ -62,7 +63,65 @@ def add_report_photo(
             "EVIDENCE_LIMIT_REACHED",
             f"A report can have at most {MAX_REPORT_PHOTOS} photos.",
         )
+    return _store_photo(
+        db, report, user, storage, data, file_name, description, "report_photo", "Photo added."
+    )
 
+
+def add_repair_photo(
+    db: Session,
+    report: Report,
+    user: User,
+    storage: Storage,
+    data: bytes,
+    file_name: str | None,
+    description: str | None,
+) -> Evidence:
+    """Check and store an official's after-repair photo, then record it. Commits.
+
+    The caller has already checked that the user may see the report. The
+    submission lock does not apply: the repair happens after submission.
+    """
+    if user.role != "official":
+        raise ApiError(
+            403, "REPAIR_PHOTO_FORBIDDEN", "Only an official can add repair photos."
+        )
+    # Lock the report row until the commit, so the status can't change midway
+    # and two uploads at once can't both pass the limit.
+    db.refresh(report, with_for_update=True)
+    if report.status != "in_progress":
+        raise ApiError(
+            409,
+            "REPORT_NOT_IN_PROGRESS",
+            "Repair photos can only be added while the report is in progress.",
+        )
+    if repair_photos_this_round(db, report) >= MAX_REPAIR_PHOTOS_PER_ROUND:
+        raise ApiError(
+            409,
+            "EVIDENCE_LIMIT_REACHED",
+            f"At most {MAX_REPAIR_PHOTOS_PER_ROUND} repair photos can be added per repair round.",
+        )
+    return _store_photo(
+        db, report, user, storage, data, file_name, description,
+        "repair_photo", "Repair photo added by an official.",
+    )
+
+
+def _store_photo(
+    db: Session,
+    report: Report,
+    user: User,
+    storage: Storage,
+    data: bytes,
+    file_name: str | None,
+    description: str | None,
+    kind: str,
+    event_description: str,
+) -> Evidence:
+    """Validate the image, save the file, then save the row and its event. Commits.
+
+    The caller has already applied the rules for this kind of photo.
+    """
     if len(data) > images.MAX_UPLOAD_BYTES:
         raise ApiError(413, "FILE_TOO_LARGE", "The file is larger than 5 MB.")
     try:
@@ -85,7 +144,7 @@ def add_report_photo(
         id=evidence_id,
         report_id=report.id,
         uploaded_by_user_id=user.id,
-        kind="report_photo",
+        kind=kind,
         file_name=display_name(file_name, image.extension),
         storage_key=storage_key,
         content_type=image.content_type,
@@ -98,9 +157,9 @@ def add_report_photo(
             db,
             report,
             "evidence_added",
-            "Photo added.",
+            event_description,
             user,
-            {"evidence_id": str(evidence_id), "kind": "report_photo"},
+            {"evidence_id": str(evidence_id), "kind": kind},
         )
         db.commit()
     except Exception:
