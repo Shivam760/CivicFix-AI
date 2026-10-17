@@ -40,8 +40,12 @@ Stores citizen and official account information.
 | email | VARCHAR(255) | Required, unique ignoring letter case |
 | password_hash | VARCHAR(255) | Required |
 | role | VARCHAR(20) | Required, one of: citizen, official; default citizen |
+| home_latitude | DOUBLE PRECISION | Optional, range -90 to 90 |
+| home_longitude | DOUBLE PRECISION | Optional, range -180 to 180 |
 | created_at | TIMESTAMPTZ | Required |
 | updated_at | TIMESTAMPTZ | Required |
+
+`home_latitude` and `home_longitude` are either both null or both set. The home location is self-declared and used only to find repairs the user may verify (section 12). It is personal data: it is returned only to the user themself, and never shown to anyone else, stored in events, or sent to the AI.
 
 Email uniqueness ignores letter case: `Aarav@example.com` and `aarav@example.com` cannot both exist. It is enforced by a unique index on `lower(email)`. The email is stored as entered, and login looks it up case-insensitively.
 
@@ -77,8 +81,11 @@ Report statuses:
 - reported
 - under_review
 - in_progress
-- resolved
+- awaiting_verification — an official reported the repair (with an after-repair photo); nearby residents are asked to check it
+- resolved — residents confirmed the repair (section 12); this is community confirmation, not proof
 - closed
+
+`resolved` is reached only through verification votes, never set directly by an official.
 
 Allowed status changes and who may make them are listed under `POST /api/v1/reports/{report_id}/status` in api-contract.md section 4. Each change records a `report_status_changed` event.
 
@@ -169,6 +176,7 @@ Event types:
 - draft_approved
 - approval_invalidated
 - evidence_added
+- verification_vote_recorded
 - submission_requested
 - submission_confirmed
 - submission_failed
@@ -225,11 +233,12 @@ Indexes:
 - agent_runs.report_id and started_at
 - evidence.report_id and uploaded_at
 - evidence.storage_key — unique index
+- repair_verifications.claim_event_id and user_id — unique index
 
 CHECK constraints:
 
 - reports.category is null or one of the values in section 2.
-- users.role, reports.status, reports.submission_status, authorities.verification_status, complaint_drafts.source, and agent_runs.status use their listed values.
+- users.role, reports.status (including awaiting_verification), reports.submission_status, authorities.verification_status, complaint_drafts.source, and agent_runs.status use their listed values.
 - complaint_drafts.agent_run_id is not null when source is ai, and null when source is citizen.
 - reports.approved_draft_id, reports.approved_at, and reports.approved_by_user_id are either all null or all set.
 - reports.external_reference and reports.submitted_at are null unless submission_status is confirmed.
@@ -238,7 +247,9 @@ CHECK constraints:
 - authorities.verification_status is verified only when last_verified_at is set.
 - complaint_drafts.version is at least 1.
 - evidence.kind and evidence.content_type use their listed values; evidence.file_size_bytes is positive; evidence.description is null or not blank.
-- Latitude is between -90 and 90; longitude is between -180 and 180.
+- Latitude is between -90 and 90; longitude is between -180 and 180 (reports and users' home location).
+- users.home_latitude and users.home_longitude are either both null or both set.
+- repair_verifications.verdict is fixed or still_broken.
 - Required text fields are not blank.
 
 Same-report foreign keys (composite keys that PostgreSQL enforces):
@@ -283,14 +294,62 @@ File storage:
 Upload rules:
 
 - At most 5 MB per file, at most 5 `report_photo` items per report, and at most 5 `repair_photo` items per repair round.
-- A **repair round** starts at the latest `report_status_changed` event whose metadata `to` is `in_progress`. A repair photo belongs to the round when its `evidence_added` event (metadata `kind` = `repair_photo`) has a higher `sequence`. Moving to `resolved` requires at least one such photo. No extra column is needed; `sequence` is used instead of timestamps because it never ties.
+- A **repair round** starts at the latest `report_status_changed` event whose metadata `to` is `in_progress`. A repair photo belongs to the round when its `evidence_added` event (metadata `kind` = `repair_photo`) has a higher `sequence`. Moving to `awaiting_verification` requires at least one such photo. No extra column is needed; `sequence` is used instead of timestamps because it never ties.
 - The file must decode as a JPEG, PNG, or WebP image. The declared content type and file name are not trusted.
 - Metadata (EXIF, including GPS location) is removed before storage, after the image is rotated upright. `content_type` and `file_size_bytes` describe the stored file.
 - A blank description is stored as null.
 - Evidence rows are never modified or deleted through the API.
 
-## 12. Items to finalize later
+Report photos are shown to nearby residents during repair verification (section 12), so the frontend tells citizens this when they upload.
+
+## 12. repair_verifications
+
+Stores residents' votes on whether a claimed repair really fixed the problem.
+
+| Column | Type | Rules |
+|---|---|---|
+| id | UUID | Primary key |
+| report_id | UUID | Required, foreign key to reports.id |
+| claim_event_id | UUID | Required, foreign key to report_events.id; the `report_status_changed` event that moved the report to `awaiting_verification` |
+| user_id | UUID | Required, foreign key to users.id; the voter |
+| verdict | VARCHAR(20) | Required, one of: fixed, still_broken |
+| created_at | TIMESTAMPTZ | Required |
+
+Constraints:
+
+- Unique (claim_event_id, user_id): one vote per person per verification round. A vote cannot be changed.
+- verdict uses its listed values.
+
+Who may vote (checked by the backend at vote time):
+
+- The report is `awaiting_verification`.
+- The user is not an official.
+- The user is the report's owner, or the report has latitude and longitude, the user has a home location, and the two are at most 2 km apart (great-circle distance).
+- The user has not voted in this round.
+
+Outcome (counted over the current round's votes, after each vote):
+
+1. The owner voted `still_broken`: back to `in_progress`.
+2. Otherwise 2 `still_broken` votes: back to `in_progress`.
+3. Otherwise 2 `fixed` votes: `resolved`.
+4. Otherwise the report stays `awaiting_verification`.
+
+The resulting status change is recorded as a `report_status_changed` event with no actor (`actor_user_id` null), because the votes decided it, not one person. Back in `in_progress`, a new repair round starts, so the official must add a new repair photo.
+
+Limits:
+
+- The home location is self-declared, and one person could create several accounts. A confirmation means "residents said it is fixed", not proof. Wording in the API and frontend reflects this.
+- If nobody votes, the report stays `awaiting_verification`. Officials cannot override the vote; they can only withdraw their claim (back to `in_progress`).
+
+Privacy:
+
+- `verification_vote_recorded` events have no actor (`actor_user_id` null) and only say whether the owner or a nearby resident voted, so the owner does not learn who their neighbours are. `repair_verifications.user_id` keeps the record for auditing.
+- No location is stored with a vote.
+
+## 13. Items to finalize later
 
 - External submission retry behavior.
 - Whether soft deletion is required for user accounts or reports.
+- Expiry for reports that stay `awaiting_verification` with too few votes.
+- Limiting how often a user can change their home location, to make voting from far away harder.
 - Data retention and file-storage policies.
