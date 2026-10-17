@@ -1,6 +1,9 @@
 """Report status changes and what officials may see (api-contract.md section 4)."""
 
+import io
+
 import pytest
+from PIL import Image
 from sqlalchemy import select
 
 from app.models import Report, ReportEvent
@@ -70,6 +73,14 @@ def test_blank_note_is_left_out(client, db_session, official_headers, report):
 
 def test_full_path_to_closed(client, official_headers, report):
     for status in ["under_review", "in_progress", "resolved", "closed"]:
+        if status == "resolved":  # resolving needs an after-repair photo
+            photo = io.BytesIO()
+            Image.new("RGB", (40, 20), "green").save(photo, format="JPEG")
+            client.post(
+                f"{URL}/{report.id}/repair-photos",
+                headers=official_headers,
+                files={"file": ("fixed.jpg", photo.getvalue(), "image/jpeg")},
+            )
         response = change(client, official_headers, report.id, status)
         assert response.status_code == 200, status
 
