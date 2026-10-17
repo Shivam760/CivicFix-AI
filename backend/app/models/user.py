@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Index, String, func
+from sqlalchemy import CheckConstraint, DateTime, Double, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -18,6 +18,13 @@ class User(Base):
         CheckConstraint("btrim(email) <> ''", name="email_not_blank"),
         CheckConstraint("btrim(password_hash) <> ''", name="password_hash_not_blank"),
         CheckConstraint(f"role IN ({sql_list(USER_ROLES)})", name="role_valid"),
+        CheckConstraint("home_latitude BETWEEN -90 AND 90", name="home_latitude_range"),
+        CheckConstraint("home_longitude BETWEEN -180 AND 180", name="home_longitude_range"),
+        # Half a location is useless for distances: both set, or neither.
+        CheckConstraint(
+            "(home_latitude IS NULL) = (home_longitude IS NULL)",
+            name="home_location_complete",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -27,6 +34,10 @@ class User(Base):
     # The server default also fills in "citizen" for accounts that existed
     # before this column was added.
     role: Mapped[str] = mapped_column(String(20), default="citizen", server_default="citizen")
+    # Self-declared, private home location, used only to find nearby repairs
+    # the user may verify (database-schema.md section 12).
+    home_latitude: Mapped[float | None] = mapped_column(Double)
+    home_longitude: Mapped[float | None] = mapped_column(Double)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

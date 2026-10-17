@@ -4,6 +4,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
+from app.schemas.report import Latitude, Longitude
+
 # Leading/trailing spaces are removed first, so "   " counts as empty.
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 # Passwords are never stripped: spaces can be part of a password.
@@ -31,7 +33,19 @@ class UserOut(BaseModel):
     name: str
     email: str
     role: str  # "citizen" or "official"; the frontend uses it to show official-only actions
+    # Only ever returned to the user themself (register, /me, home-location).
+    home_latitude: float | None
+    home_longitude: float | None
     created_at: datetime
+
+
+class HomeLocationIn(BaseModel):
+    """PUT /auth/me/home-location body. Both values are required together."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    latitude: Latitude
+    longitude: Longitude
 
 
 class TokenOut(BaseModel):

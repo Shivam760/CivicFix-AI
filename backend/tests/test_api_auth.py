@@ -37,7 +37,9 @@ def test_register_returns_user_without_password(client, email):
 
     assert response.status_code == 201
     body = response.json()
-    assert set(body) == {"id", "name", "email", "role", "created_at"}
+    assert set(body) == {
+        "id", "name", "email", "role", "home_latitude", "home_longitude", "created_at"
+    }
     assert (body["name"], body["email"]) == ("Aarav Sharma", email)
     assert body["role"] == "citizen"
 
@@ -158,3 +160,68 @@ def test_me_with_bad_token_rejected(client, user, make_token):
 
     assert response.status_code == 401
     assert error_code(response) == "INVALID_TOKEN"
+
+
+# --- home location --------------------------------------------------------------
+
+HOME = "/api/v1/auth/me/home-location"
+
+
+def test_new_account_has_no_home_location(client, email):
+    body = register(client, email).json()
+
+    assert body["home_latitude"] is None
+    assert body["home_longitude"] is None
+
+
+def test_set_home_location_is_saved(client, db_session, user, auth_headers):
+    response = client.put(HOME, json={"latitude": 30.7, "longitude": 76.8}, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["home_latitude"] == 30.7
+    assert response.json()["home_longitude"] == 76.8
+    # /me shows it afterwards, and it is really stored.
+    assert client.get(ME, headers=auth_headers).json()["home_latitude"] == 30.7
+    db_session.refresh(user)
+    assert (user.home_latitude, user.home_longitude) == (30.7, 76.8)
+
+
+def test_set_home_location_replaces_old_one(client, auth_headers):
+    client.put(HOME, json={"latitude": 30.7, "longitude": 76.8}, headers=auth_headers)
+
+    response = client.put(HOME, json={"latitude": 28.6, "longitude": 77.2}, headers=auth_headers)
+
+    assert (response.json()["home_latitude"], response.json()["home_longitude"]) == (28.6, 77.2)
+
+
+def test_delete_home_location_clears_it(client, auth_headers):
+    client.put(HOME, json={"latitude": 30.7, "longitude": 76.8}, headers=auth_headers)
+
+    response = client.delete(HOME, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["home_latitude"] is None
+    assert response.json()["home_longitude"] is None
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"latitude": 30.7},
+        {"longitude": 76.8},
+        {"latitude": 91, "longitude": 76.8},
+        {"latitude": 30.7, "longitude": 181},
+        {"latitude": "north", "longitude": 76.8},
+        {"latitude": 30.7, "longitude": 76.8, "user_id": "someone-else"},
+    ],
+    ids=["no_longitude", "no_latitude", "latitude_range", "longitude_range", "not_a_number", "extra_field"],
+)
+def test_invalid_home_location_returns_422(client, auth_headers, body):
+    response = client.put(HOME, json=body, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+def test_home_location_requires_login(client):
+    assert client.put(HOME, json={"latitude": 30.7, "longitude": 76.8}).status_code == 401
+    assert client.delete(HOME).status_code == 401

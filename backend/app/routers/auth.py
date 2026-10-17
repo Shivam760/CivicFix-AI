@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from app.dependencies import CurrentUser, DbSession
 from app.errors import ApiError
 from app.models import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenOut, UserOut
+from app.schemas.auth import HomeLocationIn, LoginRequest, RegisterRequest, TokenOut, UserOut
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -39,4 +39,22 @@ def login(body: LoginRequest, db: DbSession):
 
 @router.get("/me", response_model=UserOut)
 def read_current_user(user: CurrentUser):
+    return user
+
+
+@router.put("/me/home-location", response_model=UserOut)
+def set_home_location(body: HomeLocationIn, user: CurrentUser, db: DbSession):
+    user.home_latitude = body.latitude
+    user.home_longitude = body.longitude
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.delete("/me/home-location", response_model=UserOut)
+def clear_home_location(user: CurrentUser, db: DbSession):
+    user.home_latitude = None
+    user.home_longitude = None
+    db.commit()
+    db.refresh(user)
     return user
