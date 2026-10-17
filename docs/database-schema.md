@@ -272,7 +272,7 @@ Stores metadata about photos attached to a report. The image bytes are kept in f
 Evidence kinds:
 
 - report_photo — a photo of the problem, added by the report's owner
-- repair_photo — reserved for officials' after-repair photos (not yet used by the API)
+- repair_photo — an official's after-repair photo, added while the report is `in_progress`; a claim, not proof of the repair
 
 File storage:
 
@@ -282,7 +282,8 @@ File storage:
 
 Upload rules:
 
-- At most 5 MB per file, and at most 5 `report_photo` items per report.
+- At most 5 MB per file, at most 5 `report_photo` items per report, and at most 5 `repair_photo` items per repair round.
+- A **repair round** starts at the latest `report_status_changed` event whose metadata `to` is `in_progress`. A repair photo belongs to the round when its `evidence_added` event (metadata `kind` = `repair_photo`) has a higher `sequence`. Moving to `resolved` requires at least one such photo. No extra column is needed; `sequence` is used instead of timestamps because it never ties.
 - The file must decode as a JPEG, PNG, or WebP image. The declared content type and file name are not trusted.
 - Metadata (EXIF, including GPS location) is removed before storage, after the image is rotated upright. `content_type` and `file_size_bytes` describe the stored file.
 - A blank description is stored as null.

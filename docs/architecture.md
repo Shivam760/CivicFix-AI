@@ -51,7 +51,8 @@ AI outputs must be distinguishable from verified information. Authority records 
 5. The backend sends the report and the verified authorities from the directory to the AI workflow, validates the output, and stores the analysis run and a new complaint draft version.
 6. The citizen reviews the suggestions, may edit the draft (each edit creates a new version), and approves the latest version.
 7. An external submission is attempted only when a valid approval is recorded and an authorized integration is configured. Without an integration, the backend reports that submission is unavailable.
-8. The platform records each important action and its outcome as report events.
+8. Officials move the report through its statuses. To mark it resolved, an official first uploads an after-repair photo; this is the official's claim, not proof that the problem is fixed.
+9. The platform records each important action and its outcome as report events.
 
 ## 5. Project Setup
 

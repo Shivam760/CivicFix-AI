@@ -226,7 +226,7 @@ Success: `200 OK`
 
 Response: a Report object.
 
-Officials may read any report, its event history, and its evidence photos, and change its status. They cannot edit a report, see or create its drafts, approve, analyze, submit, or upload evidence; those endpoints return `404` for a report the official does not own.
+Officials may read any report, its event history, and its evidence photos, change its status, and upload after-repair photos. They cannot edit a report, see or create its drafts, approve, analyze, submit, or upload the citizen's report photos; those endpoints return `404` for a report the official does not own.
 
 ### POST /api/v1/reports/{report_id}/status
 
@@ -256,6 +256,8 @@ Who may change it:
 - An official may make any allowed change on any report.
 - The report's owner may only close it while it is `reported` or `under_review` (withdrawing it before work starts).
 
+Repair photo required: moving from `in_progress` to `resolved` needs at least one after-repair photo uploaded during the current repair round, that is, since the report last entered `in_progress` (see `POST /api/v1/reports/{report_id}/repair-photos`). After a reopen, a new photo is needed. `resolved` means an official reported the repair; it is not proof that the problem is fixed.
+
 Success: `200 OK`
 
 Response: the updated Report object. Records a `report_status_changed` event.
@@ -267,6 +269,7 @@ Errors:
 - `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
 - `403 Forbidden` with code `STATUS_CHANGE_FORBIDDEN`: The user may see the report but not make this change.
 - `409 Conflict` with code `INVALID_STATUS_TRANSITION`: The change is not in the table above, including setting the current status again.
+- `409 Conflict` with code `REPAIR_PHOTO_REQUIRED`: Moving to `resolved` without a repair photo from the current repair round.
 - `422 Unprocessable Entity`: Unknown status, missing status, or a note that is too long.
 
 ### PATCH /api/v1/reports/{report_id}
@@ -572,7 +575,7 @@ Photos attached to a report. Storage and upload rules are in database-schema.md 
       "uploaded_at": "2026-10-17T10:00:00Z"
     }
 
-- `kind` is `report_photo` or `repair_photo`. Only `report_photo` can be uploaded for now.
+- `kind` is `report_photo` (the citizen's photo of the problem) or `repair_photo` (an official's after-repair photo). A repair photo is the official's claim, not proof that the problem is fixed.
 - There is no public file URL. The file is downloaded through the `/file` endpoint below.
 
 ### POST /api/v1/reports/{report_id}/evidence
@@ -601,9 +604,31 @@ Errors:
 - `422 Unprocessable Entity`: The file is missing, or the description is too long.
 - `503 Service Unavailable` with code `STORAGE_UNAVAILABLE`: The file could not be saved. Nothing is recorded; try again.
 
+### POST /api/v1/reports/{report_id}/repair-photos
+
+Attach an after-repair photo. Officials only, while the report is `in_progress`. Then the official moves the report to `resolved` with `POST /api/v1/reports/{report_id}/status`.
+
+Request: `multipart/form-data` with the same fields and file rules as `POST /api/v1/reports/{report_id}/evidence`.
+
+Success: `201 Created`
+
+Response: the new Evidence object, with `kind` set to `repair_photo`. Records an `evidence_added` event.
+
+- The submission lock does not apply, as with status changes.
+- At most 5 repair photos per repair round. A round starts each time the report enters `in_progress`, so a reopened report can get new photos.
+- Image metadata is removed, as for report photos.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+- `403 Forbidden` with code `REPAIR_PHOTO_FORBIDDEN`: The user is not an official (for example, the report's owner).
+- `409 Conflict` with code `REPORT_NOT_IN_PROGRESS`: The report's status is not `in_progress`.
+- `409 Conflict` with code `EVIDENCE_LIMIT_REACHED`: 5 repair photos were already added in this round.
+- `413`, `415`, `422`, and `503` as for `POST /api/v1/reports/{report_id}/evidence`.
+
 ### GET /api/v1/reports/{report_id}/evidence
 
-List the report's evidence, oldest first. Available to the report's owner and to officials.
+List the report's evidence (both kinds), oldest first. Available to the report's owner and to officials.
 
 Success: `200 OK`
 
@@ -635,7 +660,7 @@ Errors:
 
 ## 11. Future work
 
-- Officials' after-repair photos (`repair_photo`) and citizen verification of repairs.
+- Citizen verification of repairs ("fixed" or "still broken" after `resolved`).
 - Deleting evidence uploaded by mistake.
 - Detailed jurisdiction matching for authorities.
 - Retry behavior for failed submissions.
