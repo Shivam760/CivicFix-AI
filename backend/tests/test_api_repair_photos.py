@@ -1,4 +1,4 @@
-"""Officials' after-repair photos and the photo needed to resolve a report
+"""Officials' after-repair photos and the photo needed to claim a repair
 (api-contract.md sections 4 and 10, database-schema.md section 11)."""
 
 import io
@@ -117,7 +117,9 @@ def test_upload_requires_login(client, report):
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("status", ["reported", "under_review", "resolved", "closed"])
+@pytest.mark.parametrize(
+    "status", ["reported", "under_review", "awaiting_verification", "resolved", "closed"]
+)
 def test_upload_only_while_in_progress(client, db_session, official_headers, report, status):
     set_status(db_session, report.id, status)
 
@@ -175,12 +177,12 @@ def test_sixth_photo_in_a_round_is_refused(client, official_headers, report):
     assert error_code(response) == "EVIDENCE_LIMIT_REACHED"
 
 
-def test_reopened_report_starts_a_new_round(client, official_headers, report):
+def test_withdrawn_claim_starts_a_new_round(client, official_headers, report):
     start_work(client, official_headers, report.id)
     for _ in range(5):
         upload_repair(client, official_headers, report.id)
-    change(client, official_headers, report.id, "resolved")
-    change(client, official_headers, report.id, "in_progress")  # reopened
+    change(client, official_headers, report.id, "awaiting_verification")
+    change(client, official_headers, report.id, "in_progress")  # claim withdrawn
 
     assert upload_repair(client, official_headers, report.id).status_code == 201
 
@@ -201,41 +203,41 @@ def test_repair_photos_do_not_use_up_citizens_photo_limit(
     assert response.status_code == 201
 
 
-# --- resolving needs a photo from this round ---------------------------------------
+# --- claiming the repair needs a photo from this round ---------------------------------------
 
 
-def test_resolve_without_repair_photo_returns_409(client, db_session, official_headers, report):
+def test_claim_without_repair_photo_returns_409(client, db_session, official_headers, report):
     start_work(client, official_headers, report.id)
 
-    response = change(client, official_headers, report.id, "resolved")
+    response = change(client, official_headers, report.id, "awaiting_verification")
 
     assert response.status_code == 409
     assert error_code(response) == "REPAIR_PHOTO_REQUIRED"
     assert db_session.get(Report, report.id).status == "in_progress"
 
 
-def test_resolve_with_repair_photo_succeeds(client, official_headers, report):
+def test_claim_with_repair_photo_succeeds(client, official_headers, report):
     start_work(client, official_headers, report.id)
     upload_repair(client, official_headers, report.id)
 
-    response = change(client, official_headers, report.id, "resolved")
+    response = change(client, official_headers, report.id, "awaiting_verification")
 
     assert response.status_code == 200
-    assert response.json()["status"] == "resolved"
+    assert response.json()["status"] == "awaiting_verification"
 
 
 def test_photo_from_earlier_round_does_not_count(client, official_headers, report):
     start_work(client, official_headers, report.id)
     upload_repair(client, official_headers, report.id)
-    change(client, official_headers, report.id, "resolved")
-    change(client, official_headers, report.id, "in_progress")  # reopened
+    change(client, official_headers, report.id, "awaiting_verification")
+    change(client, official_headers, report.id, "in_progress")  # claim withdrawn
 
-    response = change(client, official_headers, report.id, "resolved")
+    response = change(client, official_headers, report.id, "awaiting_verification")
     assert response.status_code == 409
     assert error_code(response) == "REPAIR_PHOTO_REQUIRED"
 
     upload_repair(client, official_headers, report.id)
-    assert change(client, official_headers, report.id, "resolved").status_code == 200
+    assert change(client, official_headers, report.id, "awaiting_verification").status_code == 200
 
 
 def test_citizen_photo_does_not_count_as_repair(
@@ -248,7 +250,7 @@ def test_citizen_photo_does_not_count_as_repair(
     )
     start_work(client, official_headers, report.id)
 
-    response = change(client, official_headers, report.id, "resolved")
+    response = change(client, official_headers, report.id, "awaiting_verification")
 
     assert response.status_code == 409
     assert error_code(response) == "REPAIR_PHOTO_REQUIRED"

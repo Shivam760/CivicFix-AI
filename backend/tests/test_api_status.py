@@ -71,20 +71,48 @@ def test_blank_note_is_left_out(client, db_session, official_headers, report):
     assert "Note" not in event.description
 
 
-def test_full_path_to_closed(client, official_headers, report):
-    for status in ["under_review", "in_progress", "resolved", "closed"]:
-        if status == "resolved":  # resolving needs an after-repair photo
-            photo = io.BytesIO()
-            Image.new("RGB", (40, 20), "green").save(photo, format="JPEG")
-            client.post(
-                f"{URL}/{report.id}/repair-photos",
-                headers=official_headers,
-                files={"file": ("fixed.jpg", photo.getvalue(), "image/jpeg")},
-            )
+def add_repair_photo(client, headers, report_id):
+    photo = io.BytesIO()
+    Image.new("RGB", (40, 20), "green").save(photo, format="JPEG")
+    client.post(
+        f"{URL}/{report_id}/repair-photos",
+        headers=headers,
+        files={"file": ("fixed.jpg", photo.getvalue(), "image/jpeg")},
+    )
+
+
+def test_official_path_to_repair_claim(client, official_headers, report):
+    for status in ["under_review", "in_progress", "awaiting_verification"]:
+        if status == "awaiting_verification":  # claiming needs an after-repair photo
+            add_repair_photo(client, official_headers, report.id)
         response = change(client, official_headers, report.id, status)
         assert response.status_code == 200, status
 
-    assert response.json()["status"] == "closed"
+    assert response.json()["status"] == "awaiting_verification"
+
+
+def test_official_can_withdraw_repair_claim(client, db_session, official_headers, report):
+    set_status(db_session, report.id, "awaiting_verification")
+
+    response = change(client, official_headers, report.id, "in_progress")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "in_progress"
+
+
+def test_owner_cannot_withdraw_repair_claim(client, db_session, auth_headers, report):
+    set_status(db_session, report.id, "awaiting_verification")
+
+    response = change(client, auth_headers, report.id, "in_progress")
+
+    assert response.status_code == 403
+    assert error_code(response) == "STATUS_CHANGE_FORBIDDEN"
+
+
+def test_resolved_report_can_be_closed(client, db_session, official_headers, report):
+    set_status(db_session, report.id, "resolved")
+
+    assert change(client, official_headers, report.id, "closed").status_code == 200
 
 
 def test_resolved_report_can_be_reopened(client, db_session, official_headers, report):
@@ -105,6 +133,10 @@ def test_resolved_report_can_be_reopened(client, db_session, official_headers, r
         ("under_review", "reported"),  # backwards
         ("closed", "reported"),  # closed is final
         ("closed", "in_progress"),
+        ("in_progress", "resolved"),  # only residents' votes resolve a report
+        ("awaiting_verification", "resolved"),
+        ("awaiting_verification", "closed"),  # the vote can't be skipped
+        ("under_review", "awaiting_verification"),  # no claim before work starts
     ],
 )
 def test_disallowed_transition_returns_409_and_changes_nothing(

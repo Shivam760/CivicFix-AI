@@ -33,11 +33,14 @@ def get_visible_report(db: Session, report_id: uuid.UUID, user: User) -> Report:
     return report
 
 
-# Allowed status changes (api-contract.md section 4). closed is final.
+# Allowed status changes through this endpoint (api-contract.md section 4).
+# closed is final. resolved is missing on purpose: only residents' votes
+# lead there, and an official can't close a report that awaits their votes.
 STATUS_TRANSITIONS = {
     "reported": {"under_review", "closed"},
     "under_review": {"in_progress", "closed"},
-    "in_progress": {"resolved", "closed"},
+    "in_progress": {"awaiting_verification", "closed"},  # awaiting = repair claimed
+    "awaiting_verification": {"in_progress"},  # claim withdrawn
     "resolved": {"in_progress", "closed"},  # in_progress again = reopened
     "closed": set(),
 }
@@ -72,11 +75,11 @@ def change_status(
             "STATUS_CHANGE_FORBIDDEN",
             "Only an official can make this status change.",
         )
-    if new_status == "resolved" and repair_photos_this_round(db, report) == 0:
+    if new_status == "awaiting_verification" and repair_photos_this_round(db, report) == 0:
         raise ApiError(
             409,
             "REPAIR_PHOTO_REQUIRED",
-            "Upload an after-repair photo before marking the report resolved.",
+            "Upload an after-repair photo before claiming the repair.",
         )
 
     report.status = new_status

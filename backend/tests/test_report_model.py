@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Authority, Report, ReportEvent
-from app.models.choices import ISSUE_CATEGORIES
+from app.models.choices import ISSUE_CATEGORIES, REPORT_STATUSES
 
 
 def make_report(user, **overrides) -> Report:
@@ -48,6 +48,12 @@ def test_report_requires_existing_user(db_session, user):
 @pytest.mark.parametrize("category", ISSUE_CATEGORIES)
 def test_valid_category_accepted(db_session, user, category):
     assert save(db_session, make_report(user, category=category)).category == category
+
+
+@pytest.mark.parametrize("status", REPORT_STATUSES)
+def test_every_listed_status_accepted(db_session, user, status):
+    # Fails if choices.py and the database's CHECK constraint disagree.
+    assert save(db_session, make_report(user, status=status)).status == status
 
 
 @pytest.mark.parametrize(
