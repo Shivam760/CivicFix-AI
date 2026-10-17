@@ -330,9 +330,10 @@ Who may vote (checked by the backend at vote time):
 Outcome (counted over the current round's votes, after each vote):
 
 1. The owner voted `still_broken`: back to `in_progress`.
-2. Otherwise 2 `still_broken` votes: back to `in_progress`.
-3. Otherwise 2 `fixed` votes: `resolved`.
-4. Otherwise the report stays `awaiting_verification`.
+2. Otherwise, if the report has no latitude and longitude (so no neighbour can vote) and the owner voted `fixed`: `resolved`.
+3. Otherwise 2 `still_broken` votes: back to `in_progress`.
+4. Otherwise 2 `fixed` votes: `resolved`.
+5. Otherwise the report stays `awaiting_verification`.
 
 The resulting status change is recorded as a `report_status_changed` event with no actor (`actor_user_id` null), because the votes decided it, not one person. Back in `in_progress`, a new repair round starts, so the official must add a new repair photo.
 

@@ -25,6 +25,9 @@ LOCKED_SUBMISSION_STATUSES = ("pending", "confirmed", "unknown")
 
 VERIFICATION_STATUSES = ("verified", "unverified")
 
+# A resident's answer about a claimed repair (database-schema.md section 12).
+VERIFICATION_VERDICTS = ("fixed", "still_broken")
+
 RUN_STATUSES = ("pending", "running", "completed", "failed")
 
 DRAFT_SOURCES = ("ai", "citizen")

@@ -700,7 +700,7 @@ After an official claims a repair (status `awaiting_verification`), residents ch
 - One vote per person per verification round; a vote cannot be changed.
 - The owner's `still_broken` vote, or 2 `still_broken` votes, sends the report back to `in_progress`.
 - Otherwise 2 `fixed` votes make it `resolved`. The owner's vote counts as one.
-- A report without latitude and longitude can only be verified by its owner.
+- A report without latitude and longitude can only be verified by its owner, so the owner's single vote decides it (`fixed` makes it `resolved`).
 - Officials cannot vote. All `/verifications` endpoints return `403 Forbidden` with code `VERIFICATION_FORBIDDEN` for officials.
 
 Neighbours see only what they need to check the repair. They do not see who reported the problem, the drafts, the event history, or anyone's home location. A report is available through these endpoints only while it is `awaiting_verification` and the user may verify it; otherwise the response is `404 Not Found` with code `REPORT_NOT_FOUND`.
