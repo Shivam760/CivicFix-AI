@@ -1,4 +1,4 @@
-"""Residents' votes on claimed repairs (api-contract.md section 11,
+"""Repair verification: residents' votes and what they may see (api-contract.md section 11,
 database-schema.md section 12)."""
 
 import io
@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 from sqlalchemy import select
 
-from app.models import RepairVerification, Report, ReportEvent, User
+from app.models import Evidence, RepairVerification, Report, ReportEvent, User
 from app.security import create_access_token
 from app.services.verification import distance_km
 
@@ -364,3 +364,190 @@ def test_owner_history_shows_votes_without_voter_ids(
     [item] = [i for i in items if i["event_type"] == "verification_vote_recorded"]
     assert item["actor_user_id"] is None
     assert item["description"] == "A nearby resident confirmed the repair."
+
+
+# --- what neighbours may see (GET /verifications) ----------------------------------
+
+VERIFICATIONS = "/api/v1/verifications"
+
+
+def add_report_photo(client, owner_headers, report_id):
+    photo = io.BytesIO()
+    Image.new("RGB", (40, 20), "red").save(photo, format="JPEG")
+    response = client.post(
+        f"{URL}/{report_id}/evidence",
+        headers=owner_headers,
+        files={"file": ("pothole.jpg", photo.getvalue(), "image/jpeg")},
+        data={"description": "The hole before the repair."},
+    )
+    assert response.status_code == 201
+
+
+def test_neighbour_sees_nearby_claim_with_limited_fields(
+    client, db_session, auth_headers, official_headers, located_report
+):
+    add_report_photo(client, auth_headers, located_report.id)
+    claim_repair(client, official_headers, located_report.id)
+
+    items = client.get(VERIFICATIONS, headers=resident(db_session)).json()["items"]
+
+    [item] = items
+    assert item["report_id"] == str(located_report.id)
+    assert item["title"] == located_report.title
+    assert item["distance_km"] == 1.0
+    assert item["is_own_report"] is False
+    assert item["my_vote"] is None
+    # Nothing that identifies the owner, and no vote counts.
+    assert "user_id" not in item
+    assert not any("count" in key or "votes" in key for key in item)
+    # Before and after photos, without uploader IDs or file names.
+    assert [photo["kind"] for photo in item["evidence"]] == ["report_photo", "repair_photo"]
+    assert set(item["evidence"][0]) == {"id", "kind", "content_type", "description", "uploaded_at"}
+
+
+def test_list_shows_my_vote(client, db_session, official_headers, located_report):
+    neighbour = resident(db_session)
+    claim_repair(client, official_headers, located_report.id)
+    vote(client, neighbour, located_report.id, "still_broken")
+
+    [item] = client.get(VERIFICATIONS, headers=neighbour).json()["items"]
+
+    assert item["my_vote"] == "still_broken"
+
+
+@pytest.mark.parametrize("home", [FAR, None], ids=["lives_far_away", "no_home_location"])
+def test_non_neighbour_sees_nothing(client, db_session, official_headers, located_report, home):
+    claim_repair(client, official_headers, located_report.id)
+
+    response = client.get(VERIFICATIONS, headers=resident(db_session, home))
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
+def test_owner_sees_own_claim_without_coordinates(client, auth_headers, official_headers, report):
+    claim_repair(client, official_headers, report.id)
+
+    [item] = client.get(VERIFICATIONS, headers=auth_headers).json()["items"]
+
+    assert item["is_own_report"] is True
+    assert item["distance_km"] is None
+
+
+def test_list_shows_only_reports_awaiting_verification(
+    client, db_session, official_headers, located_report
+):
+    neighbour = resident(db_session)
+    for status in ["under_review", "in_progress"]:
+        change(client, official_headers, located_report.id, status)
+
+    assert client.get(VERIFICATIONS, headers=neighbour).json()["items"] == []
+
+
+def test_list_is_oldest_claim_first(client, db_session, user, official_headers, located_report):
+    second = Report(
+        user_id=user.id,
+        title="Broken streetlight",
+        description="Off for a week.",
+        latitude=REPORT_SPOT[0],
+        longitude=REPORT_SPOT[1],
+    )
+    db_session.add(second)
+    db_session.flush()
+    claim_repair(client, official_headers, located_report.id)
+    claim_repair(client, official_headers, second.id)
+
+    items = client.get(VERIFICATIONS, headers=resident(db_session)).json()["items"]
+
+    assert [item["report_id"] for item in items] == [str(located_report.id), str(second.id)]
+
+
+def test_official_list_returns_403(client, official_headers):
+    response = client.get(VERIFICATIONS, headers=official_headers)
+
+    assert response.status_code == 403
+    assert error_code(response) == "VERIFICATION_FORBIDDEN"
+
+
+def test_list_requires_login(client):
+    assert client.get(VERIFICATIONS).status_code == 401
+
+
+# --- one request and its photos ----------------------------------------------------
+
+
+def test_neighbour_reads_one_request(client, db_session, official_headers, located_report):
+    claim_repair(client, official_headers, located_report.id)
+
+    response = client.get(f"{VERIFICATIONS}/{located_report.id}", headers=resident(db_session))
+
+    assert response.status_code == 200
+    assert response.json()["report_id"] == str(located_report.id)
+
+
+def test_far_resident_reading_request_gets_404(client, db_session, official_headers, located_report):
+    claim_repair(client, official_headers, located_report.id)
+
+    response = client.get(f"{VERIFICATIONS}/{located_report.id}", headers=resident(db_session, FAR))
+
+    assert response.status_code == 404
+    assert error_code(response) == "REPORT_NOT_FOUND"
+
+
+def test_request_disappears_once_resolved(client, db_session, official_headers, located_report):
+    neighbour = resident(db_session)
+    claim_repair(client, official_headers, located_report.id)
+    vote(client, neighbour, located_report.id, "fixed")
+    vote(client, resident(db_session), located_report.id, "fixed")  # resolved now
+
+    response = client.get(f"{VERIFICATIONS}/{located_report.id}", headers=neighbour)
+
+    assert response.status_code == 404
+
+
+def test_neighbour_downloads_photo(client, db_session, storage, official_headers, located_report):
+    neighbour = resident(db_session)
+    claim_repair(client, official_headers, located_report.id)
+    [photo] = client.get(f"{VERIFICATIONS}/{located_report.id}", headers=neighbour).json()["evidence"]
+
+    response = client.get(
+        f"{VERIFICATIONS}/{located_report.id}/evidence/{photo['id']}/file", headers=neighbour
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "private"
+    [stored] = storage.files.values()
+    assert response.content == stored
+
+
+def test_far_resident_cannot_download_photo(client, db_session, official_headers, located_report):
+    claim_repair(client, official_headers, located_report.id)
+    [evidence] = db_session.scalars(select(Evidence)).all()
+
+    response = client.get(
+        f"{VERIFICATIONS}/{located_report.id}/evidence/{evidence.id}/file",
+        headers=resident(db_session, FAR),
+    )
+
+    assert response.status_code == 404
+    assert error_code(response) == "REPORT_NOT_FOUND"
+
+
+def test_photo_of_another_report_returns_404(
+    client, db_session, user, official_headers, located_report
+):
+    other = Report(user_id=user.id, title="Other", description="Another problem.")
+    db_session.add(other)
+    db_session.flush()
+    claim_repair(client, official_headers, other.id)  # its photo is the only evidence
+    claim_repair(client, official_headers, located_report.id)
+    other_photo = db_session.scalars(select(Evidence).where(Evidence.report_id == other.id)).one()
+
+    response = client.get(
+        f"{VERIFICATIONS}/{located_report.id}/evidence/{other_photo.id}/file",
+        headers=resident(db_session),
+    )
+
+    assert response.status_code == 404
+    assert error_code(response) == "EVIDENCE_NOT_FOUND"

@@ -7,11 +7,11 @@ possible status change are saved together.
 
 import math
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.errors import ApiError
-from app.models import RepairVerification, Report, ReportEvent, User
+from app.models import Evidence, RepairVerification, Report, ReportEvent, User
 from app.services.reports import record_event
 
 VERIFICATION_RADIUS_KM = 2.0
@@ -78,6 +78,66 @@ def current_claim_event(db: Session, report: Report) -> ReportEvent:
 
 def has_location(report: Report) -> bool:
     return report.latitude is not None and report.longitude is not None
+
+
+def list_verifiable_reports(db: Session, user: User) -> list[Report]:
+    """The reports the user may verify now: their own, and nearby ones."""
+    candidates = [Report.user_id == user.id]
+    if user.home_latitude is not None:
+        # A quick box around the home, filtered in SQL; the exact distance is
+        # checked below. 111 km per degree is slightly less than the real
+        # value, so the box is a little too big rather than too small. (The box
+        # ignores the 180th meridian, which is far from any expected user.)
+        lat_margin = VERIFICATION_RADIUS_KM / 111.0
+        lon_margin = lat_margin / max(math.cos(math.radians(user.home_latitude)), 0.01)
+        candidates.append(
+            and_(
+                Report.latitude.between(
+                    user.home_latitude - lat_margin, user.home_latitude + lat_margin
+                ),
+                Report.longitude.between(
+                    user.home_longitude - lon_margin, user.home_longitude + lon_margin
+                ),
+            )
+        )
+    reports = db.scalars(
+        select(Report).where(Report.status == "awaiting_verification", or_(*candidates))
+    )
+    return [report for report in reports if may_verify(user, report)]
+
+
+def verification_request(db: Session, report: Report, user: User) -> dict:
+    """The Verification request object (api-contract.md section 11) for this user.
+
+    Only fields that help check the repair: no owner ID, no history, no vote counts.
+    """
+    claim = current_claim_event(db, report)
+    my_vote = db.scalar(
+        select(RepairVerification.verdict).where(
+            RepairVerification.claim_event_id == claim.id,
+            RepairVerification.user_id == user.id,
+        )
+    )
+    distance = distance_to_home(user, report)
+    evidence = db.scalars(
+        select(Evidence)
+        .where(Evidence.report_id == report.id)
+        .order_by(Evidence.uploaded_at, Evidence.id)  # oldest first
+    ).all()
+    return {
+        "report_id": report.id,
+        "title": report.title,
+        "description": report.description,
+        "category": report.category,
+        "location_text": report.location_text,
+        "latitude": report.latitude,
+        "longitude": report.longitude,
+        "distance_km": round(distance, 1) if distance is not None else None,
+        "is_own_report": report.user_id == user.id,
+        "awaiting_since": claim.created_at,
+        "my_vote": my_vote,
+        "evidence": evidence,
+    }
 
 
 def decide_outcome(votes: list[RepairVerification], report: Report) -> tuple[str, str] | None:

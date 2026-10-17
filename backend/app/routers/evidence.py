@@ -80,6 +80,11 @@ def download_evidence(
 ):
     report = get_visible_report(db, report_id, user)
     evidence = get_report_evidence(db, report, evidence_id)
+    return file_response(storage, evidence)
+
+
+def file_response(storage: Storage, evidence: Evidence) -> Response:
+    """The photo itself. Also used by the neighbours' download in verifications.py."""
     return Response(
         content=load_file(storage, evidence),
         media_type=evidence.content_type,
