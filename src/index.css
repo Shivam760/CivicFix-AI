@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-border: var(--color-primary-border);
+
+  --color-navy: var(--color-navy);
+  --color-navy-muted: var(--color-navy-muted);
+
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-surface-canvas: var(--color-surface-canvas);
+
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-muted: var(--color-muted);
+  --color-muted-light: var(--color-muted-light);
+
+  --color-status-success: var(--color-status-success);
+  --color-status-success-bg: var(--color-status-success-bg);
+  --color-status-warning: var(--color-status-warning);
+  --color-status-warning-bg: var(--color-status-warning-bg);
+  --color-status-danger: var(--color-status-danger);
+  --color-status-danger-bg: var(--color-status-danger-bg);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-bg: var(--color-status-info-bg);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  :root {
+    --color-primary: #059669;
+    --color-primary-hover: #047857;
+    --color-primary-light: #F0FDF4;
+    --color-primary-border: #A7F3D0;
+
+    --color-navy: #181A20;
+    --color-navy-muted: #3E382E;
+
+    --color-surface-canvas: #FAF6EE;
+    --color-surface: #FFFDF8;
+    --color-surface-raised: #FFFFFF;
+
+    --color-border: #E8E0CE;
+    --color-border-subtle: #F2ECE0;
+    --color-border-strong: #D5C9B3;
+
+    --color-muted: #5C5549;
+    --color-muted-light: #7E7566;
+
+    --color-status-success: #059669;
+    --color-status-success-bg: #ECFDF5;
+    --color-status-warning: #D97706;
+    --color-status-warning-bg: #FFFBEB;
+    --color-status-danger: #EF4444;
+    --color-status-danger-bg: #FEF2F2;
+    --color-status-info: #0284C7;
+    --color-status-info-bg: #F0F9FF;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--color-surface-canvas);
+    color: var(--color-navy);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: var(--color-surface-canvas);
+    color: var(--color-navy);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  /* Tabular numbers for all stats, tables, and numeric data */
+  .tabular-nums, table, [data-tabular], .stat-value {
+    font-variant-numeric: tabular-nums;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 0;
+    text-align: left;
+    border: none;
+  }
+
+  /* Suppress Microsoft Edge native password reveal */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Accessible focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Defined Type Scale Utilities */
+.text-page-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 2.125rem;
+  color: var(--color-navy);
+  letter-spacing: -0.025em;
+}
+
+.text-section-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.625rem;
+  color: var(--color-navy);
+  letter-spacing: -0.02em;
+}
+
+.text-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
+.text-body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--color-navy-muted);
+}
+
+.text-caption {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+/* Background animated gradient for auth pages */
+@keyframes gradientMesh {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.auth-gradient-bg {
+  background: linear-gradient(-45deg, rgba(16, 185, 129, 0.08), rgba(13, 148, 136, 0.06), rgba(240, 232, 216, 0.4), rgba(16, 185, 129, 0.05));
+  background-size: 300% 300%;
+  animation: gradientMesh 12s ease infinite;
+}
+
+/* Keyframes for subtle entrance */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Marquee animation for continuous ticker */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-33.333333%); }
+}
+
+/* Shimmer animation for Skeleton */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Respect user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .auth-gradient-bg {
+    animation: none !important;
+  }
+}

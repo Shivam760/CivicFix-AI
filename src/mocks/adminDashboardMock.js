@@ -1,0 +1,373 @@
+/**
+ * src/mocks/adminDashboardMock.js
+ * 
+ * Demonstration data for the Platform Administrator Dashboard.
+ * 
+ * BACKEND INTEGRATION:
+ * Used for offline development and initial frontend verification.
+ * Expected endpoints in FastAPI:
+ * - GET /api/v1/admin/analytics (aggregated system-wide metrics, time series, category breakdown)
+ * - GET /api/v1/admin/users (paginated, role filtered, search query)
+ * - PATCH /api/v1/admin/users/{id}/role (requires superadmin / platform admin authorization)
+ * - PATCH /api/v1/admin/users/{id}/status (activate / suspend account)
+ * - GET /api/v1/admin/authorities (verified municipal authority directory)
+ * - POST /api/v1/admin/authorities (create directory entry)
+ * - PATCH /api/v1/admin/authorities/{id} (edit authority info / toggle active status)
+ * - GET /api/v1/admin/activity (authoritative backend audit logs)
+ * 
+ * SECURITY INVARIANT:
+ * Every administrative endpoint MUST enforce strict backend RBAC.
+ * System-wide aggregations MUST be calculated by PostgreSQL queries,
+ * never by summing client-side arrays.
+ */
+
+export const MOCK_ADMIN_USER = {
+  id: 'usr_adm_0001',
+  name: 'Rajesh Varma',
+  email: 'admin.varma@civicfix.ai',
+  role: 'admin',
+  badgeId: 'SYS-ADMIN-01',
+  title: 'Principal Municipal Platform Administrator',
+  jurisdictionCity: 'Greater Bengaluru Metropolitan Area',
+  memberSince: '2023-01-01',
+  permissions: ['manage_users', 'manage_authorities', 'view_analytics', 'view_audit_logs', 'override_routing'],
+};
+
+export const MOCK_ADMIN_METRICS = {
+  totalComplaints: 1482,
+  pendingComplaints: 184,
+  inProgressComplaints: 412,
+  resolvedComplaints: 886,
+  registeredCitizens: 12450,
+  activeOfficers: 64,
+  verifiedAuthorities: 8,
+  avgResolutionDays: 3.2,
+  resolutionRatePct: 74,
+};
+
+export const MOCK_COMPLAINT_TRENDS = [
+  { month: 'May', submitted: 180, resolved: 140 },
+  { month: 'Jun', submitted: 240, resolved: 195 },
+  { month: 'Jul', submitted: 310, resolved: 230 },
+  { month: 'Aug', submitted: 390, resolved: 310 },
+  { month: 'Sep', submitted: 420, resolved: 365 },
+  { month: 'Oct', submitted: 285, resolved: 245 },
+];
+
+export const MOCK_CATEGORY_DISTRIBUTION = [
+  { category: 'pothole', label: 'Roads & Potholes', count: 485, percentage: 33, color: '#10B981' },
+  { category: 'garbage', label: 'Solid Waste', count: 340, percentage: 23, color: '#0D9488' },
+  { category: 'street_lighting', label: 'Streetlighting', count: 260, percentage: 17, color: '#F59E0B' },
+  { category: 'water_leakage', label: 'Water Leakage', count: 215, percentage: 15, color: '#3B82F6' },
+  { category: 'drainage_sewage', label: 'Drainage & Sewage', count: 182, percentage: 12, color: '#8B5CF6' },
+];
+
+export const MOCK_ZONE_DISTRIBUTION = [
+  { zone: 'Mahadevapura Zone', count: 420, activeRate: '92%' },
+  { zone: 'East Zone', count: 345, activeRate: '88%' },
+  { zone: 'South Zone', count: 290, activeRate: '94%' },
+  { zone: 'West Zone', count: 245, activeRate: '85%' },
+  { zone: 'Bommanahalli Zone', count: 182, activeRate: '81%' },
+];
+
+export const MOCK_AI_MONITORING_METRICS = {
+  complaintsProcessed: 1298,
+  awaitingClassification: 184,
+  processingFailures: 12,
+  avgProcessingTimeMs: 420,
+  humanCorrections: 38,
+  humanOverrideRatePct: 2.9,
+  serviceAvailabilityPct: 99.8,
+  modelVersion: 'CivicTriage-v2.4-fastapi',
+  lastHealthCheck: '2026-10-17T14:30:00Z',
+  recentInferences: [
+    {
+      id: 'INF-8812',
+      complaintId: 'CF-2026-0891',
+      categoryPredicted: 'Road Damage & Potholes',
+      confidence: 0.94,
+      latencyMs: 380,
+      status: 'confirmed_by_officer',
+      timestamp: '2026-10-16T11:45:00Z',
+    },
+    {
+      id: 'INF-8811',
+      complaintId: 'CF-2026-0883',
+      categoryPredicted: 'Road Hazards & Obstructions',
+      confidence: 0.88,
+      latencyMs: 410,
+      status: 'confirmed_by_officer',
+      timestamp: '2026-10-15T16:50:00Z',
+    },
+    {
+      id: 'INF-8810',
+      complaintId: 'CF-2026-0870',
+      categoryPredicted: 'Solid Waste Accumulation',
+      confidence: 0.91,
+      latencyMs: 395,
+      status: 'auto_triaged',
+      timestamp: '2026-10-15T10:20:00Z',
+    },
+    {
+      id: 'INF-8809',
+      complaintId: 'CF-2026-0862',
+      categoryPredicted: 'Streetlighting & Electrical',
+      confidence: 0.86,
+      latencyMs: 440,
+      status: 'corrected_by_officer',
+      timestamp: '2026-10-14T15:30:00Z',
+    },
+    {
+      id: 'INF-8808',
+      complaintId: 'CF-2026-0855',
+      categoryPredicted: 'Water Supply Leakage',
+      confidence: 0.92,
+      latencyMs: 365,
+      status: 'confirmed_by_officer',
+      timestamp: '2026-10-14T11:10:00Z',
+    },
+  ],
+};
+
+export const MOCK_ADMIN_USERS = [
+  {
+    id: 'usr-001',
+    name: 'Aarav Sharma',
+    email: 'aarav.sharma@example.com',
+    phone: '+91 98450 12345',
+    role: 'citizen',
+    status: 'active',
+    department: 'N/A (Citizen)',
+    reportsCount: 4,
+    registeredAt: '2025-08-14T10:00:00Z',
+    lastActive: '2026-10-16T09:15:00Z',
+  },
+  {
+    id: 'usr-002',
+    name: 'Er. Priya Sundaram',
+    email: 'p.sundaram@bbmp.gov.in',
+    phone: '+91 94481 99011',
+    role: 'committee',
+    status: 'active',
+    department: 'BBMP Road Infrastructure (East Zone)',
+    reportsCount: 18,
+    registeredAt: '2023-04-12T11:20:00Z',
+    lastActive: '2026-10-16T11:45:00Z',
+  },
+  {
+    id: 'usr-003',
+    name: 'Rajesh Varma',
+    email: 'admin.varma@civicfix.ai',
+    phone: '+91 99000 11223',
+    role: 'admin',
+    status: 'active',
+    department: 'Central Municipal Platform Admin',
+    reportsCount: 0,
+    registeredAt: '2023-01-01T08:00:00Z',
+    lastActive: '2026-10-16T12:00:00Z',
+  },
+  {
+    id: 'usr-004',
+    name: 'Er. N. K. Murthy',
+    email: 'nk.murthy@bbmp.gov.in',
+    phone: '+91 98860 33221',
+    role: 'committee',
+    status: 'active',
+    department: 'BBMP South Zone Road Division',
+    reportsCount: 27,
+    registeredAt: '2023-09-10T14:30:00Z',
+    lastActive: '2026-10-15T16:20:00Z',
+  },
+  {
+    id: 'usr-005',
+    name: 'Sunita Menon',
+    email: 's.menon@example.org',
+    phone: '+91 94480 55667',
+    role: 'citizen',
+    status: 'active',
+    department: 'N/A (Citizen)',
+    reportsCount: 2,
+    registeredAt: '2026-02-18T10:15:00Z',
+    lastActive: '2026-10-16T06:20:00Z',
+  },
+  {
+    id: 'usr-006',
+    name: 'Er. G. Ravindra',
+    email: 'ravindra.swd@bbmp.gov.in',
+    phone: '+91 98451 88990',
+    role: 'committee',
+    status: 'active',
+    department: 'BBMP Stormwater Drains (SWD)',
+    reportsCount: 31,
+    registeredAt: '2024-01-15T09:00:00Z',
+    lastActive: '2026-10-14T17:35:00Z',
+  },
+  {
+    id: 'usr-007',
+    name: 'Kavita Chawla',
+    email: 'kavita.c@example.com',
+    phone: '+91 97412 44332',
+    role: 'citizen',
+    status: 'suspended',
+    department: 'N/A (Citizen)',
+    reportsCount: 1,
+    registeredAt: '2026-05-10T16:40:00Z',
+    lastActive: '2026-09-22T13:10:00Z',
+  },
+];
+
+export const MOCK_ADMIN_AUTHORITIES = [
+  {
+    id: 'AUTH-BBMP-RD-SOUTH',
+    name: 'Bruhat Bengaluru Mahanagara Palike',
+    department: 'Road Infrastructure Division (South Zone)',
+    jurisdictionZone: 'South Zone, Bengaluru',
+    category: 'pothole',
+    categoryLabel: 'Road Damage & Potholes',
+    headOfficer: 'Er. N. K. Murthy',
+    email: 'ee.south.roads@bbmp.gov.in',
+    phone: '+91 80 2297 5501',
+    portalUrl: 'https://bbmp.karnataka.gov.in',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 42,
+  },
+  {
+    id: 'AUTH-BBMP-RD-CENTRAL',
+    name: 'Bruhat Bengaluru Mahanagara Palike',
+    department: 'Road Infrastructure Division (Central Zone)',
+    jurisdictionZone: 'Central Zone, Bengaluru',
+    category: 'pothole',
+    categoryLabel: 'Road Damage & Potholes',
+    headOfficer: 'Er. Ramesh K.',
+    email: 'ee.central.roads@bbmp.gov.in',
+    phone: '+91 80 2297 5502',
+    portalUrl: 'https://bbmp.karnataka.gov.in',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 29,
+  },
+  {
+    id: 'AUTH-KPWD-HW-BLR',
+    name: 'Karnataka Public Works Department',
+    department: 'State & National Highways Division',
+    jurisdictionZone: 'All Zones (Major Arterial Corridors)',
+    category: 'road_hazard',
+    categoryLabel: 'Road Hazard & Major Arterials',
+    headOfficer: 'Chief Engineer Highways',
+    email: 'ce.highways@kpwd.karnataka.gov.in',
+    phone: '+91 80 2221 4455',
+    portalUrl: 'https://kpwd.karnataka.gov.in',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 18,
+  },
+  {
+    id: 'AUTH-BBMP-SWM-ALL',
+    name: 'Bruhat Bengaluru Mahanagara Palike',
+    department: 'Solid Waste Management Division',
+    jurisdictionZone: 'Citywide (All Zones)',
+    category: 'garbage',
+    categoryLabel: 'Garbage & Solid Waste',
+    headOfficer: 'Joint Commissioner SWM',
+    email: 'jc.swm@bbmp.gov.in',
+    phone: '+91 80 2297 5530',
+    portalUrl: 'https://bbmp.karnataka.gov.in/swm',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 68,
+  },
+  {
+    id: 'AUTH-BWSSB-WATER-BLR',
+    name: 'Bangalore Water Supply and Sewerage Board',
+    department: 'Water Supply & Pipeline Maintenance Directorate',
+    jurisdictionZone: 'Greater Bengaluru Urban Water District',
+    category: 'water_leakage',
+    categoryLabel: 'Water Leakage & Mains',
+    headOfficer: 'Chief Engineer Maintenance',
+    email: 'waterops@bwssb.gov.in',
+    phone: '+91 80 2294 5100',
+    portalUrl: 'https://bwssb.karnataka.gov.in',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 36,
+  },
+  {
+    id: 'AUTH-BESCOM-ELEC-BLR',
+    name: 'Bangalore Electricity Supply Company Limited',
+    department: 'Urban Streetlighting & Low Tension Grid',
+    jurisdictionZone: 'BESCOM Urban Distribution Circle',
+    category: 'street_lighting',
+    categoryLabel: 'Street Lighting & Grid',
+    headOfficer: 'Executive Engineer Electrical',
+    email: 'streetlight.urban@bescom.co.in',
+    phone: '+91 80 2287 3333',
+    portalUrl: 'https://bescom.karnataka.gov.in',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 24,
+  },
+  {
+    id: 'AUTH-BBMP-SWD-BLR',
+    name: 'Bruhat Bengaluru Mahanagara Palike',
+    department: 'Stormwater Drains (SWD) Cell',
+    jurisdictionZone: 'Primary & Secondary Valley Canals',
+    category: 'drainage_sewage',
+    categoryLabel: 'Drainage & Canals',
+    headOfficer: 'Chief Engineer SWD',
+    email: 'ce.swd@bbmp.gov.in',
+    phone: '+91 80 2297 5560',
+    portalUrl: 'https://bbmp.karnataka.gov.in',
+    status: 'active',
+    isVerified: true,
+    activeTickets: 19,
+  },
+];
+
+export const MOCK_AUDIT_LOGS = [
+  {
+    id: 'aud-901',
+    event: 'TICKET_STATUS_UPDATED',
+    actor: 'Er. Priya Sundaram (committee)',
+    details: 'Changed CF-2026-0891 status from under_review to in_progress',
+    timestamp: '2026-10-15T14:15:00Z',
+    severity: 'info',
+    ip: '10.24.18.92',
+  },
+  {
+    id: 'aud-902',
+    event: 'AUTHORITY_WORKORDER_DISPATCHED',
+    actor: 'System AI Router',
+    details: 'Routed CF-2026-0883 to BBMP Major Roads with High Priority tag',
+    timestamp: '2026-10-15T16:50:00Z',
+    severity: 'info',
+    ip: 'internal.broker',
+  },
+  {
+    id: 'aud-903',
+    event: 'USER_ROLE_ELEVATION',
+    actor: 'Rajesh Varma (admin)',
+    details: 'Verified municipal credentials and assigned committee role to Er. N. K. Murthy',
+    timestamp: '2026-10-14T09:00:00Z',
+    severity: 'warning',
+    ip: '10.24.10.4',
+  },
+  {
+    id: 'aud-904',
+    event: 'USER_ACCOUNT_SUSPENDED',
+    actor: 'Rajesh Varma (admin)',
+    details: 'Suspended account usr-007 due to repeated fraudulent report submissions',
+    timestamp: '2026-09-22T13:10:00Z',
+    severity: 'danger',
+    ip: '10.24.10.4',
+  },
+  {
+    id: 'aud-905',
+    event: 'NEW_CITIZEN_REGISTRATION',
+    actor: 'Aarav Sharma (citizen)',
+    details: 'Registered citizen account with municipal mobile OTP verification',
+    timestamp: '2025-08-14T10:00:00Z',
+    severity: 'info',
+    ip: '49.207.214.12',
+  },
+];
