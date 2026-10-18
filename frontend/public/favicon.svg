@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <!-- Background Glow Halo for Dark & Light Tabs -->
+    <filter id="favGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#047857" flood-opacity="0.4" />
+    </filter>
+
+    <!-- Metallic Shield Gradient -->
+    <linearGradient id="favShieldGrad" x1="12" y1="8" x2="52" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#059669" />
+      <stop offset="35%" stopColor="#047857" />
+      <stop offset="70%" stopColor="#0F172A" />
+      <stop offset="100%" stopColor="#022C22" />
+    </linearGradient>
+
+    <!-- Beveled Mint & Chrome Border Rim -->
+    <linearGradient id="favRimGrad" x1="12" y1="8" x2="52" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#A7F3D0" />
+      <stop offset="30%" stopColor="#34D399" />
+      <stop offset="75%" stopColor="#059669" />
+      <stop offset="100%" stopColor="#022C22" />
+    </linearGradient>
+
+    <!-- Road Ribbon Gradient -->
+    <linearGradient id="favRoadGrad" x1="32" y1="52" x2="32" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#1E293B" />
+      <stop offset="100%" stopColor="#334155" />
+    </linearGradient>
+
+    <!-- Dynamic Resolution Checkmark Gradient -->
+    <linearGradient id="favCheckGrad" x1="18" y1="36" x2="46" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#10B981" />
+      <stop offset="50%" stopColor="#34D399" />
+      <stop offset="90%" stopColor="#6EE7B7" />
+      <stop offset="100%" stopColor="#FFFFFF" />
+    </linearGradient>
+  </defs>
+
+  <!-- Group with Shadow Filter -->
+  <g filter="url(#favGlow)">
+    <!-- Base Deep Extrusion Layer -->
+    <path
+      d="M32 58 C22 49, 8 38, 8 20 C8 10, 16 5, 32 5 C48 5, 56 10, 56 20 C56 38, 42 49, 32 58 Z"
+      fill="#011F18"
+      transform="translate(0, 1.5)"
+    />
+
+    <!-- Main Shield Pin Chassis -->
+    <path
+      d="M32 57 C22 48, 9 37, 9 20 C9 10, 17 6, 32 6 C47 6, 55 10, 55 20 C55 37, 42 48, 32 57 Z"
+      fill="url(#favShieldGrad)"
+      stroke="url(#favRimGrad)"
+      stroke-width="2.2"
+      stroke-linejoin="round"
+    />
+
+    <!-- Recessed Roadway Plate -->
+    <path
+      d="M32 51 C24 44, 15 34, 15 20 C15 13, 21 10, 32 10 C43 10, 49 13, 49 20 C49 34, 40 44, 32 51 Z"
+      fill="#0A1324"
+      stroke="#064E3B"
+      stroke-width="1"
+    />
+
+    <!-- Perspective Civic Highway Ribbon -->
+    <path
+      d="M21 49 L26 24 L38 24 L43 49 Z"
+      fill="url(#favRoadGrad)"
+      stroke="#475569"
+      stroke-width="0.8"
+    />
+
+    <!-- Glowing Emerald Highway Curbs -->
+    <line x1="21.5" y1="48" x2="26.5" y2="24.5" stroke="#10B981" stroke-width="1.2" />
+    <line x1="42.5" y1="48" x2="37.5" y2="24.5" stroke="#10B981" stroke-width="1.2" />
+
+    <!-- Dashed Center Highway Marking -->
+    <line
+      x1="32"
+      y1="47"
+      x2="32"
+      y2="25"
+      stroke="#FFFFFF"
+      stroke-width="1.6"
+      stroke-dasharray="3 2"
+      stroke-linecap="round"
+    />
+
+    <!-- Dynamic Resolution Checkmark Spire -->
+    <path
+      d="M20 34 L28 42 L46 20"
+      fill="none"
+      stroke="url(#favCheckGrad)"
+      stroke-width="4.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Specular Highlight Ridge on Checkmark -->
+    <path
+      d="M20.5 33.5 L28 41 L45.5 20.5"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-width="1.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.9"
+    />
+
+    <!-- Apex AI Fusion Beacon Node -->
+    <circle cx="46" cy="20" r="3.2" fill="#34D399" />
+    <circle cx="46" cy="20" r="1.8" fill="#FFFFFF" />
+  </g>
+</svg>
