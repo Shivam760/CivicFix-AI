@@ -82,15 +82,25 @@ export function errorText(error) {
   return error.message;
 }
 
-// When the token expired or is invalid, log out and go to the login page.
-function handleUnauthorized(status, error) {
-  if (status !== 401) return;
-  // A wrong password on /auth/login is also 401; that is not an expired session.
-  if (error.code === 'INVALID_CREDENTIALS') return;
-  authStorage.clearSession();
-  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-    window.location.href = '/login?expired=true';
+function goTo(path) {
+  if (typeof window !== 'undefined' && window.location.pathname !== path.split('?')[0]) {
+    window.location.href = path;
   }
+}
+
+// Errors that mean "this account can't be here", not "this request failed".
+function handleAccessErrors(status, error) {
+  // The token expired or is invalid: log out and go to the login page.
+  // A wrong password on /auth/login is also 401; that is not an expired session.
+  if (status === 401 && error.code !== 'INVALID_CREDENTIALS') {
+    authStorage.clearSession();
+    goTo('/login?expired=true');
+  }
+  // An admin rejected (or has not yet approved) this official, perhaps while
+  // they were signed in: show their application instead of failing pages.
+  if (status === 403 && error.code === 'ACCOUNT_NOT_APPROVED') goTo('/account/pending');
+  // Admin accounts only use the admin page.
+  if (status === 403 && error.code === 'ADMIN_ACCOUNT') goTo('/admin');
 }
 
 async function send(path, { method = 'GET', body, json, timeout = DEFAULT_TIMEOUT_MS } = {}) {
@@ -141,7 +151,7 @@ export async function apiRequest(path, options = {}) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     const error = toError(response.status, data, `Request failed (HTTP ${response.status}).`);
-    handleUnauthorized(response.status, error);
+    handleAccessErrors(response.status, error);
     return { ok: false, status: response.status, error };
   }
   return { ok: true, status: response.status, data };
@@ -161,7 +171,7 @@ export async function apiFetchObjectUrl(path) {
   if (!response.ok) {
     const data = await response.json().catch(() => null);
     const error = toError(response.status, data, `Could not load the photo (HTTP ${response.status}).`);
-    handleUnauthorized(response.status, error);
+    handleAccessErrors(response.status, error);
     return { ok: false, error };
   }
   const blob = await response.blob();

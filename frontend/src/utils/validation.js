@@ -50,6 +50,24 @@ export function validateName(name) {
   return { isValid: true };
 }
 
+// An official applicant's details (api-contract.md section 3): 2-150 and
+// 2-100 characters after trimming, the same limits the backend checks.
+function validateText(value, label, max) {
+  const clean = (value || '').trim();
+  if (!clean) return { isValid: false, error: `${label} is required.` };
+  if (clean.length < 2) return { isValid: false, error: `${label} needs at least 2 characters.` };
+  if (clean.length > max) return { isValid: false, error: `${label} can be at most ${max} characters.` };
+  return { isValid: true };
+}
+
+export function validateDepartment(value) {
+  return validateText(value, 'Department', 150);
+}
+
+export function validateJobTitle(value) {
+  return validateText(value, 'Job title', 100);
+}
+
 /**
  * Evaluates password strength and criteria for Sign-Up.
  * @param {string} password

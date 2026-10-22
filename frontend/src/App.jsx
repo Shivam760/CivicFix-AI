@@ -12,6 +12,7 @@ import CitizenReportPage from './pages/citizen/CitizenReportPage';
 import VerificationsPage from './pages/citizen/VerificationsPage';
 import NearbyPage from './pages/citizen/NearbyPage';
 import OfficialDashboardPage from './pages/official/OfficialDashboardPage';
+import PendingApprovalPage from './pages/account/PendingApprovalPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { ROLES } from './constants/roles';
@@ -66,6 +67,16 @@ function AnimatedRoutes() {
           <Route path="dashboard" element={page(<OfficialDashboardPage />)} />
           <Route path="reports/:id" element={page(<ReportDetailPage />)} />
         </Route>
+
+        {/* Pending or rejected officials: their application, nothing else. */}
+        <Route
+          path="/account/pending"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.OFFICIAL]} allowUnapproved>
+              {page(<PendingApprovalPage />)}
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

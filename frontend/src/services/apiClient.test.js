@@ -113,3 +113,32 @@ describe('errorText', () => {
     expect(errorText({ code: 'EMAIL_TAKEN', message: 'Email taken.', details: [] })).toBe('Email taken.');
   });
 });
+
+describe('account access errors (api-contract.md section 3)', () => {
+  it('sends an official who is not approved to their application page', async () => {
+    vi.stubGlobal('fetch', respondWith(403, { error: { code: 'ACCOUNT_NOT_APPROVED', message: 'Not approved.' } }));
+    authStorage.setToken('tok');
+
+    await apiRequest('/reports');
+
+    expect(window.location.href).toBe('/account/pending');
+    expect(authStorage.getToken()).toBe('tok'); // still signed in: they can read their status
+  });
+
+  it('sends an admin to the admin page', async () => {
+    vi.stubGlobal('fetch', respondWith(403, { error: { code: 'ADMIN_ACCOUNT', message: 'Admin.' } }));
+
+    await apiRequest('/reports');
+
+    expect(window.location.href).toBe('/admin');
+  });
+
+  it('leaves other 403s, like a wrong sign-in choice, to the page', async () => {
+    vi.stubGlobal('fetch', respondWith(403, { error: { code: 'WRONG_ACCOUNT_TYPE', message: 'This is a citizen account.' } }));
+
+    const res = await apiRequest('/auth/login', { method: 'POST', json: {} });
+
+    expect(window.location.href).toBe('');
+    expect(res.error.code).toBe('WRONG_ACCOUNT_TYPE');
+  });
+});

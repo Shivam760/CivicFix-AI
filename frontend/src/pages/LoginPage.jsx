@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
+import AccountTypeToggle from '../components/AccountTypeToggle';
 import PrimaryButton from '../components/PrimaryButton';
 import { validateEmail, validateLoginPassword } from '../utils/validation';
 import { loginUser } from '../services/authService';
 import { errorText } from '../services/apiClient';
-import { ROLE_PATHS } from '../constants/roles';
+import { ACCOUNT_TYPES, homePathFor } from '../constants/roles';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
@@ -17,11 +18,14 @@ export default function LoginPage() {
 
   const [formData, setFormData] = useState(() => {
     const rememberedEmail = localStorage.getItem('civicfix_remembered_email') || '';
+    const rememberedType = localStorage.getItem('civicfix_remembered_account_type');
     return {
       // Just signed up? Fill in that email.
       email: location.state?.registeredEmail || rememberedEmail,
       password: '',
       rememberMe: Boolean(rememberedEmail),
+      // Citizen or Official: from sign-up, else the remembered choice, else Citizen.
+      accountType: location.state?.accountType || rememberedType || ACCOUNT_TYPES.CITIZEN,
     };
   });
 
@@ -29,6 +33,12 @@ export default function LoginPage() {
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [apiFeedback, setApiFeedback] = useState(() => {
+    if (location.state?.registeredEmail && location.state?.accountType === ACCOUNT_TYPES.OFFICIAL) {
+      return {
+        type: 'success',
+        message: 'Application sent. An admin will check it. Sign in as Official to see its status.',
+      };
+    }
     if (location.state?.registeredEmail) {
       return { type: 'success', message: 'Account created. Please sign in with your new password.' };
     }
@@ -97,26 +107,34 @@ export default function LoginPage() {
     // Securely handle remember-me (persist email only, never passwords)
     if (formData.rememberMe) {
       localStorage.setItem('civicfix_remembered_email', formData.email.trim());
+      localStorage.setItem('civicfix_remembered_account_type', formData.accountType);
     } else {
       localStorage.removeItem('civicfix_remembered_email');
+      localStorage.removeItem('civicfix_remembered_account_type');
     }
 
     setLoading(true);
 
-    // POST /auth/login, then GET /auth/me for the name and role.
-    const result = await loginUser({ email: formData.email, password: formData.password });
+    // POST /auth/login, then GET /auth/me for the name, role and approval status.
+    const result = await loginUser({
+      email: formData.email,
+      password: formData.password,
+      accountType: formData.accountType,
+    });
     setLoading(false);
 
     if (result.ok) {
       showToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${result.user.name}.` });
       setApiFeedback({ type: 'success', message: 'Signed in. Opening your dashboard...' });
-      // Go back to the page that sent us here, or to this role's home.
+      // Go back to the page that sent us here, or to this account's home
+      // (a pending or rejected official lands on their application).
       const from = location.state?.from?.pathname;
-      const home = ROLE_PATHS[result.user.role] || '/citizen/dashboard';
+      const home = homePathFor(result.user);
       const homePrefix = home.split('/')[1];
       navigate(from && from.startsWith(`/${homePrefix}/`) ? from : home, { replace: true });
     } else {
       // INVALID_CREDENTIALS: same message for a wrong password and an unknown email.
+      // WRONG_ACCOUNT_TYPE: e.g. "This is a citizen account. Choose Citizen to sign in."
       setApiFeedback({ type: 'error', message: errorText(result.error) });
     }
   };
@@ -153,6 +171,14 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} noValidate className="w-full space-y-5">
+          <AccountTypeToggle
+            name="login-account-type"
+            legend="Sign in as"
+            value={formData.accountType}
+            onChange={(accountType) => setFormData((prev) => ({ ...prev, accountType }))}
+            disabled={loading}
+          />
+
           {/* Email Field with Notched Label */}
           <FormField
             id="email"

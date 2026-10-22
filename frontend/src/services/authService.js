@@ -10,13 +10,14 @@
  */
 
 import { apiRequest, authStorage } from './apiClient';
-import { ROLES } from '../constants/roles';
+import { ACCOUNT_TYPES, ROLES } from '../constants/roles';
 
-export async function loginUser({ email, password }) {
-  const res = await apiRequest('/auth/login', {
-    method: 'POST',
-    json: { email: email.trim(), password },
-  });
+// accountType is the page's Citizen / Official choice. If it doesn't match the
+// account, the backend answers 403 WRONG_ACCOUNT_TYPE ("This is a citizen account...").
+export async function loginUser({ email, password, accountType }) {
+  const json = { email: email.trim(), password };
+  if (accountType) json.account_type = accountType;
+  const res = await apiRequest('/auth/login', { method: 'POST', json });
   if (!res.ok) return res;
 
   authStorage.setToken(res.data.access_token);
@@ -28,13 +29,27 @@ export async function loginUser({ email, password }) {
   return { ok: true, user: me.data };
 }
 
-// Creates a citizen account. It does not log in: the user signs in next on
-// the login page. Returns { ok: true, data: user } on success.
-export function registerUser({ name, email, password }) {
-  return apiRequest('/auth/register', {
-    method: 'POST',
-    json: { name: name.trim(), email: email.trim(), password },
+// Creates a citizen account, or an official account that waits for an admin
+// (department and job title are sent only for officials). It does not log in:
+// the user signs in next on the login page. Returns { ok: true, data: user }.
+export function registerUser({ name, email, password, accountType = ACCOUNT_TYPES.CITIZEN, department, jobTitle }) {
+  const json = { name: name.trim(), email: email.trim(), password };
+  if (accountType === ACCOUNT_TYPES.OFFICIAL) {
+    json.account_type = ACCOUNT_TYPES.OFFICIAL;
+    json.official_department = department.trim();
+    json.official_job_title = jobTitle.trim();
+  }
+  return apiRequest('/auth/register', { method: 'POST', json });
+}
+
+// A pending or rejected official corrects their details and applies again.
+export async function updateOfficialApplication({ department, jobTitle }) {
+  const res = await apiRequest('/auth/me/official-application', {
+    method: 'PUT',
+    json: { official_department: department.trim(), official_job_title: jobTitle.trim() },
   });
+  if (res.ok) authStorage.setUser(res.data);
+  return res;
 }
 
 // GET /auth/me: refreshes the stored user (name, role, home location).

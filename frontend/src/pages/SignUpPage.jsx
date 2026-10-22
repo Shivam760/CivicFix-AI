@@ -2,28 +2,53 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
+import AccountTypeToggle from '../components/AccountTypeToggle';
 import PrimaryButton from '../components/PrimaryButton';
 import PasswordStrength from '../components/PasswordStrength';
-import { validateEmail, validateName, evaluatePasswordStrength } from '../utils/validation';
+import {
+  validateEmail,
+  validateName,
+  evaluatePasswordStrength,
+  validateDepartment,
+  validateJobTitle,
+} from '../utils/validation';
+import { ACCOUNT_TYPES } from '../constants/roles';
 import { registerUser } from '../services/authService';
 import { errorText } from '../services/apiClient';
-import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ShieldCheck, Info } from 'lucide-react';
 
 const VALIDATORS = {
   name: validateName,
   email: validateEmail,
   password: evaluatePasswordStrength,
+  department: validateDepartment,
+  jobTitle: validateJobTitle,
+};
+
+// The fields each account type fills in.
+const FIELDS = {
+  [ACCOUNT_TYPES.CITIZEN]: ['name', 'email', 'password'],
+  [ACCOUNT_TYPES.OFFICIAL]: ['name', 'email', 'password', 'department', 'jobTitle'],
 };
 
 /**
  * SignUpPage
- * POST /auth/register creates a citizen account (name, email, password),
- * then we go to the login page so the user signs in.
+ * POST /auth/register creates a citizen account, or an official account that
+ * waits for an admin (plus department and job title). Then we go to the
+ * login page so the user signs in.
  */
 export default function SignUpPage() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({
+    accountType: ACCOUNT_TYPES.CITIZEN,
+    name: '',
+    email: '',
+    password: '',
+    department: '',
+    jobTitle: '',
+  });
+  const isOfficial = formData.accountType === ACCOUNT_TYPES.OFFICIAL;
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
@@ -50,8 +75,9 @@ export default function SignUpPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiFeedback(null);
-    setTouched({ name: true, email: true, password: true });
-    const allValid = Object.keys(VALIDATORS)
+    const fields = FIELDS[formData.accountType];
+    setTouched(Object.fromEntries(fields.map((field) => [field, true])));
+    const allValid = fields
       .map((field) => validateField(field, formData[field]))
       .every(Boolean);
     if (!allValid) return;
@@ -62,7 +88,9 @@ export default function SignUpPage() {
 
     if (result.ok) {
       // Go to the login page with the email filled in and a success message.
-      navigate('/login', { state: { registeredEmail: result.data.email } });
+      navigate('/login', {
+        state: { registeredEmail: result.data.email, accountType: formData.accountType },
+      });
     } else {
       // e.g. 409 EMAIL_TAKEN: "An account with this email already exists."
       setApiFeedback({ type: 'error', message: errorText(result.error) });
@@ -76,7 +104,9 @@ export default function SignUpPage() {
           Create Account
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 mb-4 sm:mb-5 leading-relaxed max-w-md">
-          Create a citizen account to report civic problems and follow what happens to them.
+          {isOfficial
+            ? 'Apply for an official account to work on reports in your area. An admin checks it first.'
+            : 'Create a citizen account to report civic problems and follow what happens to them.'}
         </p>
 
         {apiFeedback && (
@@ -98,6 +128,14 @@ export default function SignUpPage() {
         )}
 
         <form onSubmit={handleSubmit} noValidate className="w-full space-y-3.5 sm:space-y-4">
+          <AccountTypeToggle
+            name="signup-account-type"
+            legend="I am a"
+            value={formData.accountType}
+            onChange={(accountType) => setFormData((prev) => ({ ...prev, accountType }))}
+            disabled={loading}
+          />
+
           <FormField
             id="signup-name"
             name="name"
@@ -146,9 +184,49 @@ export default function SignUpPage() {
             <PasswordStrength password={formData.password} />
           </div>
 
+          {isOfficial && (
+            <>
+              <FormField
+                id="signup-department"
+                name="department"
+                label="Department"
+                type="text"
+                value={formData.department}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="e.g. Municipal Corporation, Roads"
+                autoComplete="organization"
+                error={touched.department ? errors.department : undefined}
+                disabled={loading}
+                required
+              />
+              <FormField
+                id="signup-job-title"
+                name="jobTitle"
+                label="Job title"
+                type="text"
+                value={formData.jobTitle}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="e.g. Junior Engineer"
+                autoComplete="organization-title"
+                error={touched.jobTitle ? errors.jobTitle : undefined}
+                disabled={loading}
+                required
+              />
+              <div className="flex items-start gap-2 p-3 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-900 text-left leading-relaxed">
+                <Info className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  An admin confirms your job with your department before you can use the official
+                  pages. Until then you can only see the status of your application.
+                </span>
+              </div>
+            </>
+          )}
+
           <div className="pt-1">
             <PrimaryButton type="submit" loading={loading} disabled={loading}>
-              Create Account
+              {isOfficial ? 'Send application' : 'Create Account'}
             </PrimaryButton>
           </div>
 
