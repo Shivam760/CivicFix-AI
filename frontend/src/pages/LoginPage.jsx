@@ -3,14 +3,14 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
 import PrimaryButton from '../components/PrimaryButton';
-import SocialAuthButtons from '../components/SocialAuthButtons';
 import { validateEmail, validateLoginPassword } from '../utils/validation';
-import { loginUser } from '../services/apiClient';
+import { loginUser } from '../services/authService';
+import { errorText } from '../services/apiClient';
 import { ROLE_PATHS } from '../constants/roles';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
-export default function LoginPage({ devSimulation = false }) {
+export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
@@ -18,7 +18,8 @@ export default function LoginPage({ devSimulation = false }) {
   const [formData, setFormData] = useState(() => {
     const rememberedEmail = localStorage.getItem('civicfix_remembered_email') || '';
     return {
-      email: rememberedEmail,
+      // Just signed up? Fill in that email.
+      email: location.state?.registeredEmail || rememberedEmail,
       password: '',
       rememberMe: Boolean(rememberedEmail),
     };
@@ -28,6 +29,9 @@ export default function LoginPage({ devSimulation = false }) {
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [apiFeedback, setApiFeedback] = useState(() => {
+    if (location.state?.registeredEmail) {
+      return { type: 'success', message: 'Account created. Please sign in with your new password.' };
+    }
     if (location.state?.message) {
       return { type: 'error', message: location.state.message };
     }
@@ -99,55 +103,21 @@ export default function LoginPage({ devSimulation = false }) {
 
     setLoading(true);
 
-    try {
-      const result = await loginUser({
-        email: formData.email,
-        password: formData.password,
-        useDevSimulation:
-          devSimulation ||
-          Boolean(import.meta.env.DEV) ||
-          window.location.search.includes('demo=true'),
-      });
+    // POST /auth/login, then GET /auth/me for the name and role.
+    const result = await loginUser({ email: formData.email, password: formData.password });
+    setLoading(false);
 
-      if (result.success) {
-        showToast({
-          type: 'success',
-          title: 'Sign In Successful',
-          message: 'Welcome back to CivicFix AI.',
-        });
-        setApiFeedback({
-          type: 'success',
-          message: 'Authentication successful! Directing to citizen grievance dashboard...',
-        });
-        setTimeout(() => {
-          const destination = (result.user && ROLE_PATHS[result.user.role]) || '/citizen/dashboard';
-          navigate(destination);
-        }, 600);
-      } else {
-        const errMsg = result.error || 'Authentication failed. Please verify your credentials.';
-        showToast({
-          type: 'error',
-          title: 'Sign In Failed',
-          message: errMsg,
-        });
-        setApiFeedback({
-          type: 'error',
-          message: errMsg,
-        });
-      }
-    } catch {
-      const errMsg = 'Could not connect to authentication service. Please check network connectivity.';
-      showToast({
-        type: 'error',
-        title: 'Connection Error',
-        message: errMsg,
-      });
-      setApiFeedback({
-        type: 'error',
-        message: errMsg,
-      });
-    } finally {
-      setLoading(false);
+    if (result.ok) {
+      showToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${result.user.name}.` });
+      setApiFeedback({ type: 'success', message: 'Signed in. Opening your dashboard...' });
+      // Go back to the page that sent us here, or to this role's home.
+      const from = location.state?.from?.pathname;
+      const home = ROLE_PATHS[result.user.role] || '/citizen/dashboard';
+      const homePrefix = home.split('/')[1];
+      navigate(from && from.startsWith(`/${homePrefix}/`) ? from : home, { replace: true });
+    } else {
+      // INVALID_CREDENTIALS: same message for a wrong password and an unknown email.
+      setApiFeedback({ type: 'error', message: errorText(result.error) });
     }
   };
 
@@ -159,7 +129,7 @@ export default function LoginPage({ devSimulation = false }) {
           Welcome Back
         </h1>
         <p className="text-sm sm:text-[15px] text-slate-600 mb-5 sm:mb-6 max-w-sm">
-          Sign in to report issues and track municipal progress.
+          Sign in to report civic issues and follow what happens to them.
         </p>
 
         {/* Global Feedback Banner */}
@@ -196,7 +166,6 @@ export default function LoginPage({ devSimulation = false }) {
             autoComplete="email"
             error={touched.email ? errors.email : undefined}
             disabled={loading}
-            backgroundColor="#FAF6EB"
             required
           />
 
@@ -214,11 +183,10 @@ export default function LoginPage({ devSimulation = false }) {
               autoComplete="current-password"
               error={touched.password ? errors.password : undefined}
               disabled={loading}
-              backgroundColor="#FAF6EB"
               required
             />
 
-            {/* Auxiliary Row: Remember Me & Forgot Password */}
+            {/* Remember Me (stores only the email address, never the password) */}
             <div className="w-full flex items-center justify-between mt-3 px-1 text-xs sm:text-sm">
               <label htmlFor="remember-me" className="inline-flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900">
                 <input
@@ -231,13 +199,6 @@ export default function LoginPage({ devSimulation = false }) {
                 />
                 <span className="font-semibold text-slate-700">Remember me</span>
               </label>
-
-              <Link
-                to="/forgot-password"
-                className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 rounded"
-              >
-                Forgot Password?
-              </Link>
             </div>
           </div>
 
@@ -247,9 +208,6 @@ export default function LoginPage({ devSimulation = false }) {
               Login
             </PrimaryButton>
           </div>
-
-          {/* Social Separator & Circular Buttons (Google, Facebook, Apple) */}
-          <SocialAuthButtons actionText="log in" />
 
           {/* Switch Link: "Don't have an account? Sign up" */}
           <div className="text-center pt-3">

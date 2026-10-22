@@ -20,7 +20,7 @@ export default function FilterBar({
     Boolean(query) || filters.some((f) => f.value && f.value !== 'all');
 
   return (
-    <div className="bg-[#FFFDF9] rounded-2xl border border-[#EBE3D0] p-3 sm:p-4 mb-5 shadow-2xs">
+    <div className="bg-surface rounded-2xl border border-border p-3 sm:p-4 mb-5 shadow-2xs">
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="relative flex-1 min-w-[240px]">
@@ -34,7 +34,7 @@ export default function FilterBar({
             value={query}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full pl-9 pr-9 py-2 rounded-xl bg-[#FAF6EE] border border-[#E2D8C3] text-xs sm:text-sm text-stone-800 placeholder-stone-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus:border-transparent transition-all"
+            className="w-full pl-9 pr-9 py-2 rounded-xl bg-surface-canvas border border-border text-xs sm:text-sm text-stone-800 placeholder-muted focus:bg-surface focus:outline-none focus:ring-2 focus:ring-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus:border-transparent transition-all"
           />
           {query && (
             <button
@@ -57,7 +57,7 @@ export default function FilterBar({
                 aria-label={filter.label}
                 value={filter.value}
                 onChange={(e) => filter.onChange(e.target.value)}
-                className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl bg-[#FAF6EE] border border-[#E2D8C3] text-xs font-semibold text-stone-700 hover:bg-[#F5EFE0] focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-600 cursor-pointer transition-colors"
+                className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl bg-surface-canvas border border-border text-xs font-semibold text-stone-700 hover:bg-surface-canvas focus:bg-surface focus:outline-none focus:ring-2 focus:ring-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-600 cursor-pointer transition-colors"
               >
                 {filter.options.map((opt) => (
                   <option key={opt.value} value={opt.value}>

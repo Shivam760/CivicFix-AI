@@ -1,419 +1,179 @@
 /**
  * src/services/apiClient.js
- * 
- * Consolidated HTTP & Authentication Client for CivicFix AI.
- * 
- * Unifies all API interactions with:
- * - Single API_BASE_URL (defaults to http://localhost:8000)
- * - Safe in-memory access token storage
- * - Single shared offline circuit breaker
- * - Configurable timeout per request (default: 5000ms, health check: 3000ms)
- * - Automatic Authorization: Bearer <token> injection
- * - Automatic session invalidation and redirect on HTTP 401
+ *
+ * The one place that talks HTTP to the CivicFix backend (docs/api-contract.md).
+ *
+ * - Base URL from VITE_API_BASE_URL (frontend/.env), default http://localhost:8000.
+ * - Adds "Authorization: Bearer <token>" when the user is logged in.
+ * - Reads the backend's error format: {"error": {"code", "message", "details"}}.
+ * - Never invents data: if a request fails, the caller gets ok: false and the
+ *   real error. (The teammate's version fell back to mock data, which hid
+ *   every failure.)
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+export const API_PREFIX = '/api/v1';
+const DEFAULT_TIMEOUT_MS = 15000;
 
-// Configurable Timeout & Circuit Breaker Constants
-export const DEFAULT_TIMEOUT_MS = 5000;
-export const HEALTH_TIMEOUT_MS = 3000;
-const CIRCUIT_BREAKER_DURATION_MS = 10000;
-
-// In-memory token storage (with sessionStorage survival)
-let inMemoryAccessToken =
-  typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('civicfix_token') : null;
-let inMemoryCurrentUser = null;
+// sessionStorage keeps the login only for this browser tab; it is cleared
+// when the tab closes. The token expires after 60 minutes anyway (no refresh).
+const TOKEN_KEY = 'civicfix_token';
+const USER_KEY = 'civicfix_user';
 
 export const authStorage = {
-  getToken: () => {
-    if (inMemoryAccessToken) return inMemoryAccessToken;
-    if (typeof sessionStorage !== 'undefined') {
-      const stored = sessionStorage.getItem('civicfix_token');
-      if (stored) {
-        inMemoryAccessToken = stored;
-        return inMemoryAccessToken;
-      }
-    }
-    return null;
-  },
-  setToken: (token) => {
-    inMemoryAccessToken = token;
-    if (token) {
-      sessionStorage.setItem('civicfix_authenticated', 'true');
-      sessionStorage.setItem('civicfix_token', token);
-    } else {
-      sessionStorage.removeItem('civicfix_authenticated');
-      sessionStorage.removeItem('civicfix_token');
-    }
-  },
-  getUser: () => {
-    if (inMemoryCurrentUser) return inMemoryCurrentUser;
+  getToken() {
     try {
-      const stored = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('civicfix_user_json') : null;
-      if (stored) {
-        inMemoryCurrentUser = JSON.parse(stored);
-        return inMemoryCurrentUser;
-      }
+      return sessionStorage.getItem(TOKEN_KEY);
     } catch {
-      // Ignore JSON parse error
-    }
-    return null;
-  },
-  setUser: (user) => {
-    inMemoryCurrentUser = user;
-    if (user) {
-      sessionStorage.setItem('civicfix_user_email', user.email || '');
-      try {
-        sessionStorage.setItem('civicfix_user_json', JSON.stringify(user));
-      } catch {
-        // Ignore serialization errors
-      }
-    } else {
-      sessionStorage.removeItem('civicfix_user_email');
-      sessionStorage.removeItem('civicfix_user_json');
+      return null;
     }
   },
-  isAuthenticated: () => {
-    return Boolean(inMemoryAccessToken) || sessionStorage.getItem('civicfix_authenticated') === 'true';
+  setToken(token) {
+    try {
+      if (token) sessionStorage.setItem(TOKEN_KEY, token);
+      else sessionStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // Storage blocked (private mode): the user simply stays logged out.
+    }
   },
-  clearSession: () => {
-    inMemoryAccessToken = null;
-    inMemoryCurrentUser = null;
-    sessionStorage.removeItem('civicfix_authenticated');
-    sessionStorage.removeItem('civicfix_user_email');
-    sessionStorage.removeItem('civicfix_user_json');
-    sessionStorage.removeItem('civicfix_token');
+  getUser() {
+    try {
+      const raw = sessionStorage.getItem(USER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+  setUser(user) {
+    try {
+      if (user) sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      else sessionStorage.removeItem(USER_KEY);
+    } catch {
+      // Ignore storage errors.
+    }
+  },
+  isAuthenticated() {
+    return Boolean(this.getToken());
+  },
+  clearSession() {
+    this.setToken(null);
+    this.setUser(null);
   },
 };
 
-// Shared offline circuit breaker state
-let knownOffline = false;
-let lastOfflineCheck = 0;
-
-export function resetCircuitBreaker() {
-  knownOffline = false;
-  lastOfflineCheck = 0;
+// Turn any failure into the same shape: { code, message, details, status }.
+function toError(status, data, fallbackMessage) {
+  const err = data && typeof data === 'object' ? data.error : null;
+  return {
+    status,
+    code: (err && err.code) || (status ? `HTTP_${status}` : 'NETWORK_ERROR'),
+    message: (err && err.message) || fallbackMessage,
+    details: (err && Array.isArray(err.details) && err.details) || [],
+  };
 }
 
-/**
- * Core HTTP fetch client with token injection, timeout containment, and error handling.
- * 
- * @param {string} endpoint - Relative path (e.g. '/api/v1/complaints/mine')
- * @param {object} options - Fetch options (method, headers, body, signal, timeout)
- * @returns {Promise<{ ok: boolean, status: number, data: any, error?: string, isNetworkError?: boolean }>}
- */
-export async function apiRequest(endpoint, options = {}) {
+// A message for the screen; adds field details for validation errors.
+export function errorText(error) {
+  if (!error) return '';
+  if (error.code === 'VALIDATION_ERROR' && error.details.length > 0) {
+    const parts = error.details.map((d) => `${d.field}: ${d.message}`);
+    return `${error.message} ${parts.join('; ')}`;
+  }
+  return error.message;
+}
+
+// When the token expired or is invalid, log out and go to the login page.
+function handleUnauthorized(status, error) {
+  if (status !== 401) return;
+  // A wrong password on /auth/login is also 401; that is not an expired session.
+  if (error.code === 'INVALID_CREDENTIALS') return;
+  authStorage.clearSession();
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.href = '/login?expired=true';
+  }
+}
+
+async function send(path, { method = 'GET', body, json, timeout = DEFAULT_TIMEOUT_MS } = {}) {
+  const headers = { Accept: 'application/json' };
   const token = authStorage.getToken();
-  const isDemoSession =
-    token === 'simulated_jwt_token_for_review_only' ||
-    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('civicfix_demo_mode') === 'true') ||
-    (typeof window !== 'undefined' && window.location.search.includes('demo=true'));
+  if (token) headers.Authorization = `Bearer ${token}`;
 
-  if (isDemoSession) {
-    return {
-      ok: false,
-      status: 0,
-      data: null,
-      isNetworkError: true,
-      error: 'Simulated preview mode active.',
-    };
+  let requestBody = body; // FormData for uploads: the browser sets the boundary.
+  if (json !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    requestBody = JSON.stringify(json);
   }
 
-  // If known to be offline in the last 10 seconds, immediately short-circuit to fallback
-  if (knownOffline && Date.now() - lastOfflineCheck < CIRCUIT_BREAKER_DURATION_MS) {
-    return {
-      ok: false,
-      status: 0,
-      data: null,
-      isNetworkError: true,
-      error: `FastAPI backend currently offline at ${API_BASE_URL}.`,
-    };
-  }
-
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-
-  const headers = {
-    Accept: 'application/json',
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
-  };
-
-  const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
-
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    const response = await fetch(url, {
-      ...options,
+    return await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
+      method,
       headers,
-      signal: options.signal || controller.signal,
+      body: requestBody,
+      signal: controller.signal,
     });
-    clearTimeout(timeoutId);
-    knownOffline = false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-    // Parse JSON safely
+/**
+ * JSON request. Returns { ok: true, status, data } or { ok: false, status, error }.
+ *
+ * Examples:
+ *   apiRequest('/reports')
+ *   apiRequest('/reports', { method: 'POST', json: { title, description } })
+ *   apiRequest('/reports/ID/evidence', { method: 'POST', body: formData })
+ */
+export async function apiRequest(path, options = {}) {
+  let response;
+  try {
+    response = await send(path, options);
+  } catch (e) {
+    const message =
+      e.name === 'AbortError'
+        ? 'The server did not answer in time. Please try again.'
+        : `Cannot reach the CivicFix server at ${API_BASE_URL}. Is the backend running?`;
+    return { ok: false, status: 0, error: toError(0, null, message) };
+  }
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = toError(response.status, data, `Request failed (HTTP ${response.status}).`);
+    handleUnauthorized(response.status, error);
+    return { ok: false, status: response.status, error };
+  }
+  return { ok: true, status: response.status, data };
+}
+
+/**
+ * Download a protected file (an evidence photo) as an object URL for <img src>.
+ * Call URL.revokeObjectURL(url) when the image is no longer shown.
+ */
+export async function apiFetchObjectUrl(path) {
+  let response;
+  try {
+    response = await send(path);
+  } catch {
+    return { ok: false, error: toError(0, null, 'Cannot reach the server.') };
+  }
+  if (!response.ok) {
     const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const errorMessage =
-        (data && (data.detail || data.message || data.error)) ||
-        `HTTP Error ${response.status}: ${response.statusText}`;
-
-      // In case of 401 Unauthorized, prompt session re-authentication
-      if (response.status === 401) {
-        authStorage.clearSession();
-        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-          window.location.href = '/login?expired=true';
-        }
-      }
-
-      return {
-        ok: false,
-        status: response.status,
-        data,
-        error: errorMessage,
-      };
-    }
-
-    return {
-      ok: true,
-      status: response.status,
-      data,
-    };
-  } catch (err) {
-    knownOffline = true;
-    lastOfflineCheck = Date.now();
-    const isAbort = err.name === 'AbortError';
-    return {
-      ok: false,
-      status: 0,
-      data: null,
-      isNetworkError: true,
-      error: isAbort
-        ? 'Request timed out. The backend server did not respond in time.'
-        : `Cannot connect to CivicFix AI backend at ${API_BASE_URL}.`,
-    };
+    const error = toError(response.status, data, `Could not load the photo (HTTP ${response.status}).`);
+    handleUnauthorized(response.status, error);
+    return { ok: false, error };
   }
+  const blob = await response.blob();
+  return { ok: true, url: URL.createObjectURL(blob) };
 }
 
-/**
- * Checks if the backend server is reachable.
- * Uses configurable 3000ms health check timeout.
- */
+// GET /health lives outside /api/v1.
 export async function checkBackendHealth() {
-  const res = await apiRequest('/health', {
-    method: 'GET',
-    timeout: HEALTH_TIMEOUT_MS,
-  });
-
-  if (res.ok) {
-    return { isOnline: true, data: res.data };
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    return response.ok;
+  } catch {
+    return false;
   }
-  return {
-    isOnline: false,
-    status: res.status,
-    error: res.error,
-  };
-}
-
-/**
- * Authenticate user credentials.
- */
-export async function loginUser({ email, password, useDevSimulation = false }) {
-  const isDemo =
-    useDevSimulation ||
-    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('civicfix_demo_mode') === 'true') ||
-    (typeof window !== 'undefined' && window.location.search.includes('demo=true'));
-
-  if (isDemo) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    if (password === 'wrongpassword') {
-      return {
-        success: false,
-        error: 'Invalid email or password. Please verify your civic credentials.',
-      };
-    }
-    const lowerEmail = email.toLowerCase();
-    let role = 'citizen';
-    let simulatedUser = { email, id: 'demo-citizen-101', role: 'citizen' };
-
-    if (lowerEmail.includes('admin')) {
-      role = 'admin';
-      simulatedUser = {
-        id: 'usr-admin-01',
-        name: 'Rajesh Varma',
-        email,
-        role: 'admin',
-        department: 'Central Municipal Platform Admin',
-      };
-    } else if (lowerEmail.includes('committee') || lowerEmail.includes('sundaram')) {
-      role = 'committee';
-      simulatedUser = {
-        id: 'usr-committee-01',
-        name: 'Er. Priya Sundaram',
-        email,
-        role: 'committee',
-        department: 'BBMP Road Infrastructure (East Zone)',
-      };
-    }
-
-    localStorage.setItem('civicfix_active_preview_role', role);
-    authStorage.setToken('simulated_jwt_token_for_review_only');
-    authStorage.setUser(simulatedUser);
-    return {
-      success: true,
-      message: 'Authenticated in Developer Preview mode.',
-      user: simulatedUser,
-      isSimulated: true,
-    };
-  }
-
-  const res = await apiRequest('/api/v1/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email: email.trim(), password }),
-    timeout: DEFAULT_TIMEOUT_MS,
-  });
-
-  if (res.ok && res.data) {
-    if (res.data.access_token) {
-      authStorage.setToken(res.data.access_token);
-      authStorage.setUser(res.data.user || { email });
-    }
-    return {
-      success: true,
-      data: res.data,
-      user: res.data.user || { email },
-    };
-  }
-
-  if (res.isNetworkError) {
-    const lowerEmail = email.toLowerCase();
-    let role = 'citizen';
-    let simulatedUser = { email, id: 'demo-citizen-101', role: 'citizen' };
-
-    if (lowerEmail.includes('admin')) {
-      role = 'admin';
-      simulatedUser = {
-        id: 'usr-admin-01',
-        name: 'Rajesh Varma',
-        email,
-        role: 'admin',
-        department: 'Central Municipal Platform Admin',
-      };
-    } else if (lowerEmail.includes('committee') || lowerEmail.includes('sundaram')) {
-      role = 'committee';
-      simulatedUser = {
-        id: 'usr-committee-01',
-        name: 'Er. Priya Sundaram',
-        email,
-        role: 'committee',
-        department: 'BBMP Road Infrastructure (East Zone)',
-      };
-    }
-
-    localStorage.setItem('civicfix_active_preview_role', role);
-    authStorage.setToken('simulated_jwt_token_for_review_only');
-    authStorage.setUser(simulatedUser);
-    return {
-      success: true,
-      message: 'Authenticated via offline circuit breaker fallback.',
-      user: simulatedUser,
-      isSimulated: true,
-    };
-  }
-
-  return {
-    success: false,
-    isBackendOffline: false,
-    error: res.error || `Login failed (HTTP ${res.status}).`,
-    status: res.status,
-  };
-}
-
-/**
- * Register a new citizen account.
- */
-export async function registerUser({ email, phone, password, useDevSimulation = false }) {
-  if (useDevSimulation && import.meta.env.DEV) {
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    const simulatedUser = { email, phone, id: 'demo-citizen-202', role: 'citizen' };
-    authStorage.setUser(simulatedUser);
-    return {
-      success: true,
-      message: 'Account successfully registered in Developer Preview mode.',
-      user: simulatedUser,
-      isSimulated: true,
-    };
-  }
-
-  const res = await apiRequest('/api/v1/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({
-      email: email.trim(),
-      phone: phone.trim(),
-      password,
-    }),
-    timeout: DEFAULT_TIMEOUT_MS,
-  });
-
-  if (res.ok) {
-    return {
-      success: true,
-      data: res.data,
-    };
-  }
-
-  return {
-    success: false,
-    isBackendOffline: Boolean(res.isNetworkError),
-    error: res.isNetworkError
-      ? (import.meta.env.DEV
-          ? `Cannot reach CivicFix AI backend at ${API_BASE_URL}. Ensure your FastAPI server is active, or toggle "Offline Simulation Mode" in the dev badge for testing.`
-          : 'The registration service is temporarily unavailable. Please try again shortly.')
-      : (res.error || `Account creation failed (HTTP ${res.status}).`),
-    status: res.status,
-  };
-}
-
-/**
- * Request password recovery.
- */
-export async function requestPasswordReset({ email, useDevSimulation = false }) {
-  if (useDevSimulation && import.meta.env.DEV) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return {
-      success: true,
-      message: `Password reset instructions dispatched to ${email} (Dev simulation).`,
-      isSimulated: true,
-    };
-  }
-
-  const res = await apiRequest('/api/v1/auth/forgot-password', {
-    method: 'POST',
-    body: JSON.stringify({ email: email.trim() }),
-    timeout: DEFAULT_TIMEOUT_MS,
-  });
-
-  if (res.ok) {
-    return {
-      success: true,
-      data: res.data,
-      message: (res.data && res.data.message) || 'Password recovery instructions sent.',
-    };
-  }
-
-  return {
-    success: false,
-    isBackendOffline: Boolean(res.isNetworkError),
-    error: res.isNetworkError
-      ? (import.meta.env.DEV
-          ? `Backend unreachable at ${API_BASE_URL}. The recovery request could not be transmitted to the civic authentication server.`
-          : 'The password recovery service is currently unreachable. Please try again later.')
-      : (res.error || `Password recovery request failed (HTTP ${res.status}).`),
-    status: res.status,
-  };
 }

@@ -18,7 +18,7 @@ export default function Pagination({
   const endIdx = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[#EBE3D0] text-xs text-stone-600">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border text-xs text-stone-600">
       <div>
         Showing <span className="font-bold text-stone-900">{startIdx}</span> to{' '}
         <span className="font-bold text-stone-900">{endIdx}</span> of{' '}
@@ -30,7 +30,7 @@ export default function Pagination({
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="p-1.5 rounded-lg border border-[#D8CEBA] bg-[#FFFDF9] hover:bg-[#FAF6ED] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg border border-border bg-surface hover:bg-surface-canvas disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Previous page"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -47,7 +47,7 @@ export default function Pagination({
               className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
                 isActive
                   ? 'bg-emerald-600 text-white shadow-2xs'
-                  : 'border border-[#D8CEBA] bg-[#FFFDF9] hover:bg-[#FAF6ED] text-stone-700'
+                  : 'border border-border bg-surface hover:bg-surface-canvas text-stone-700'
               }`}
             >
               {page}
@@ -59,7 +59,7 @@ export default function Pagination({
           type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="p-1.5 rounded-lg border border-[#D8CEBA] bg-[#FFFDF9] hover:bg-[#FAF6ED] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg border border-border bg-surface hover:bg-surface-canvas disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Next page"
         >
           <ChevronRight className="w-4 h-4" />

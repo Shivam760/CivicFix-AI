@@ -6,9 +6,6 @@
 // Basic email regex following RFC 5322 simplified standard
 export const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/;
 
-// Phone number regex supporting international and national formats (digits, spaces, hyphens, optional +)
-export const PHONE_REGEX = /^\+?[0-9\s\-()]{7,15}$/;
-
 /**
  * Validates an email address.
  * @param {string} email
@@ -38,20 +35,17 @@ export function validateLoginPassword(password) {
 }
 
 /**
- * Validates a phone number for Sign-Up.
- * @param {string} phone
+ * Validates the display name for Sign-Up (backend: 1-100 characters after trimming).
+ * @param {string} name
  * @returns {{ isValid: boolean, error?: string }}
  */
-export function validatePhoneNumber(phone) {
-  if (!phone || !phone.trim()) {
-    return { isValid: false, error: 'Phone number is required.' };
+export function validateName(name) {
+  const clean = (name || '').trim();
+  if (!clean) {
+    return { isValid: false, error: 'Name is required.' };
   }
-  const digitsOnly = phone.replace(/[^0-9]/g, '');
-  if (digitsOnly.length < 10) {
-    return { isValid: false, error: 'Please enter a valid phone number with at least 10 digits.' };
-  }
-  if (!PHONE_REGEX.test(phone.trim())) {
-    return { isValid: false, error: 'Please enter a valid phone number.' };
+  if (clean.length > 100) {
+    return { isValid: false, error: 'Name can be at most 100 characters.' };
   }
   return { isValid: true };
 }
@@ -102,6 +96,8 @@ export function evaluatePasswordStrength(password = '') {
     error = 'Password is required.';
   } else if (!hasMinLength) {
     error = 'Password must be at least 8 characters long.';
+  } else if (password.length > 128) {
+    error = 'Password can be at most 128 characters.';
   } else if (!hasLetter || !hasNumber) {
     error = 'Password must include both letters and numbers.';
   }
@@ -114,7 +110,7 @@ export function evaluatePasswordStrength(password = '') {
     hasLetter,
     hasNumber,
     hasSpecial,
-    isValid: hasMinLength && hasLetter && hasNumber,
+    isValid: hasMinLength && password.length <= 128 && hasLetter && hasNumber,
     error,
   };
 }

@@ -15,7 +15,7 @@ export default function LoadingState({ message = 'Loading records from municipal
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
         {Array.from({ length: cardsCount }).map((_, i) => (
-          <div key={i} className="h-28 rounded-2xl bg-[#F4EFE2] border border-[#EBE3D0]" />
+          <div key={i} className="h-28 rounded-2xl bg-surface-canvas border border-border" />
         ))}
       </div>
     </div>

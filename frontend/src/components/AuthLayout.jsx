@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import CivicHeader from './CivicHeader';
+import ThemeToggle from './common/ThemeToggle';
 import CivicIllustration from './CivicIllustration';
 import { ShieldCheck, Activity, Lock, Sparkles } from 'lucide-react';
 
@@ -94,6 +95,11 @@ export default function AuthLayout({
       exit="exit"
       className="min-h-screen w-full bg-surface-canvas text-navy flex flex-col justify-between selection:bg-amber-200 selection:text-amber-900 overflow-x-hidden relative transition-colors"
     >
+      {/* Light / dark mode switch */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Subtle Architectural Grid for Soft Depth */}
       <div className="fixed inset-0 bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none -z-10" />
 

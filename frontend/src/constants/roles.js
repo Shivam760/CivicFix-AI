@@ -1,28 +1,23 @@
 /**
  * src/constants/roles.js
- * 
- * Defines standard user roles and access capabilities for CivicFix AI.
- * 
- * BACKEND INTEGRATION NOTE:
- * These roles mirror the backend RBAC permissions enforced by FastAPI.
- * The backend is the single source of truth; frontend route protection
- * improves user experience but the backend MUST validate permissions on every endpoint.
+ *
+ * User roles, matching USER_ROLES in backend/app/models/choices.py.
+ * Registration always creates a citizen; officials are made with
+ * `python -m scripts.set_role <email> official` (there is no admin role).
  */
 
 export const ROLES = {
   CITIZEN: 'citizen',
-  COMMITTEE: 'committee',
-  ADMIN: 'admin',
+  OFFICIAL: 'official',
 };
 
 export const ROLE_LABELS = {
-  [ROLES.CITIZEN]: 'Normal Citizen',
-  [ROLES.COMMITTEE]: 'Committee Member / Officer',
-  [ROLES.ADMIN]: 'System Administrator',
+  [ROLES.CITIZEN]: 'Citizen',
+  [ROLES.OFFICIAL]: 'Official',
 };
 
+// Where each role lands after login.
 export const ROLE_PATHS = {
   [ROLES.CITIZEN]: '/citizen/dashboard',
-  [ROLES.COMMITTEE]: '/committee/dashboard',
-  [ROLES.ADMIN]: '/admin/dashboard',
+  [ROLES.OFFICIAL]: '/official/dashboard',
 };

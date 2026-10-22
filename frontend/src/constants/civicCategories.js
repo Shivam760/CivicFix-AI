@@ -1,63 +1,31 @@
 /**
  * src/constants/civicCategories.js
- * 
- * Standard civic categories recognized by CivicFix AI.
- * Mirrors `CivicCategory` enum in FastAPI `ai/schemas.py`.
- * 
- * BACKEND INTEGRATION NOTE:
- * Do not hardcode lists in UI components; import from here or fetch dynamically
- * from GET /api/v1/meta/categories if provided by backend.
+ *
+ * Issue categories, matching ISSUE_CATEGORIES in backend/app/models/choices.py
+ * (database-schema.md section 2 is the source of truth).
+ * A report's category may also be null ("not set yet").
  */
 
 export const CIVIC_CATEGORIES = [
   {
-    id: 'pothole',
-    label: 'Road Damage & Potholes',
-    description: 'Cratered pavement, asphalt erosion, dangerous sinkholes',
-    iconName: 'AlertTriangle',
-    color: 'emerald',
+    id: 'road_damage',
+    label: 'Road damage',
+    description: 'Potholes, broken road surface, damaged footpaths',
   },
   {
     id: 'garbage',
-    label: 'Garbage & Solid Waste',
-    description: 'Overflowing dumpsters, illegal dumping, uncollected municipal waste',
-    iconName: 'Trash2',
-    color: 'teal',
+    label: 'Garbage',
+    description: 'Overflowing bins, uncollected waste, illegal dumping',
   },
   {
-    id: 'street_lighting',
-    label: 'Street Lighting',
-    description: 'Dark streets, flickering fixtures, fallen lamp posts',
-    iconName: 'Lightbulb',
-    color: 'amber',
+    id: 'streetlight',
+    label: 'Streetlight',
+    description: 'Lights that are off, flickering, or damaged',
   },
   {
-    id: 'water_leakage',
-    label: 'Water Leakage & Main Burst',
-    description: 'High-pressure pipeline bursts, drinking water wastage',
-    iconName: 'Droplets',
-    color: 'blue',
-  },
-  {
-    id: 'drainage_sewage',
-    label: 'Drainage & Sewage Overflow',
-    description: 'Blocked stormwater drains, open sewer contamination',
-    iconName: 'Waves',
-    color: 'purple',
-  },
-  {
-    id: 'road_hazard',
-    label: 'Road Hazard & Obstruction',
-    description: 'Fallen trees, dangerous debris, missing manhole covers',
-    iconName: 'ShieldAlert',
-    color: 'rose',
-  },
-  {
-    id: 'other_civic',
-    label: 'Other Civic Infrastructure',
-    description: 'Public parks, footpaths, civic signage issues',
-    iconName: 'HelpCircle',
-    color: 'stone',
+    id: 'other',
+    label: 'Other',
+    description: 'Any other civic problem',
   },
 ];
 
@@ -65,3 +33,8 @@ export const CATEGORY_MAP = CIVIC_CATEGORIES.reduce((acc, cat) => {
   acc[cat.id] = cat;
   return acc;
 }, {});
+
+export function categoryLabel(category) {
+  if (!category) return 'Category not set';
+  return CATEGORY_MAP[category]?.label || category;
+}

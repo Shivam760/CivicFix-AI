@@ -3,8 +3,11 @@ import { useReducedMotion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import pinAnimationData from '../../assets/lottie/pin.json';
 
-// Lazy-load lottie-react to keep initial bundle size lean
-const LazyLottie = React.lazy(() => import('lottie-react'));
+// Lazy-load lottie-react to keep initial bundle size lean.
+// lottie-react v3 has no default export (the component is the named export
+// `Lottie`), but React.lazy needs { default: Component }. Without this mapping
+// React throws and the whole page goes blank.
+const LazyLottie = React.lazy(() => import('lottie-react').then((mod) => ({ default: mod.Lottie })));
 
 /**
  * EmptyState
@@ -30,7 +33,7 @@ export default function EmptyState({
           <Suspense fallback={<FallbackIcon className="w-8 h-8 text-primary/70 animate-pulse" />}>
             <div className="w-16 h-16 flex items-center justify-center">
               <LazyLottie
-                animationData={pinAnimationData}
+                src={pinAnimationData}
                 loop={true}
                 autoplay={true}
                 style={{ width: '100%', height: '100%' }}

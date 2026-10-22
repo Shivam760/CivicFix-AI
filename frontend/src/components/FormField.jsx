@@ -20,7 +20,7 @@ export default function FormField({
   required = false,
   disabled = false,
   className = '',
-  backgroundColor = '#FAF6EB',
+  backgroundColor = 'var(--color-surface-canvas)',
   showIcon = true,
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +47,7 @@ export default function FormField({
         {label && (
           <label
             htmlFor={id}
-            style={{ backgroundColor: backgroundColor || '#FAF6EB' }}
+            style={{ backgroundColor: backgroundColor || 'var(--color-surface-canvas)' }}
             className={`absolute -top-2.5 left-6 px-2.5 text-[11.5px] font-bold uppercase tracking-wider transition-all duration-200 pointer-events-none z-10 ${
               error
                 ? 'text-red-600'

@@ -1,12 +1,17 @@
 import React from 'react';
-import { STATUS_CONFIG, COMPLAINT_STATUS } from '../../constants/complaintStatuses';
+import { STATUS_CONFIG } from '../../constants/complaintStatuses';
 
 /**
  * StatusBadge
- * Displays consistent, accessible status pills across all dashboards.
+ * Status pill used on every screen. Hover shows what the status means.
  */
 export default function StatusBadge({ status, className = '' }) {
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG[COMPLAINT_STATUS.SUBMITTED];
+  const config = STATUS_CONFIG[status] || {
+    label: status,
+    badgeClass: 'bg-stone-100 text-stone-700 border-stone-300',
+    dotClass: 'bg-stone-500',
+    description: '',
+  };
 
   return (
     <span

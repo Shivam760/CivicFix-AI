@@ -39,7 +39,7 @@ export default function ConfirmationDialog({
       aria-labelledby="confirm-dialog-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs animate-fadeIn"
     >
-      <div className="bg-[#FFFDF9] rounded-3xl max-w-md w-full p-6 shadow-xl border border-[#E5DAC4] text-left">
+      <div className="bg-surface rounded-3xl max-w-md w-full p-6 shadow-xl border border-border text-left">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
@@ -66,12 +66,12 @@ export default function ConfirmationDialog({
         </h3>
         <p className="text-xs sm:text-sm text-stone-600 mb-6 leading-relaxed">{message}</p>
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EBE3D0]">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
           <button
             type="button"
             onClick={onCancel}
             disabled={isProcessing}
-            className="px-4 py-2 rounded-xl border border-[#D8CEBA] bg-[#FFFDF9] hover:bg-[#FAF6ED] text-xs font-semibold text-stone-700 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl border border-border bg-surface hover:bg-surface-canvas text-xs font-semibold text-stone-700 transition-colors cursor-pointer"
           >
             {cancelLabel}
           </button>

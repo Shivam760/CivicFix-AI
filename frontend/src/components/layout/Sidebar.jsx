@@ -1,20 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import {
-  LayoutDashboard,
-  FileText,
-  PlusCircle,
-  ClipboardList,
-  Building2,
-  Users,
-  BarChart3,
-  ShieldCheck,
-  ShieldAlert,
-  LogOut,
-  Cpu,
-} from 'lucide-react';
-import { ROLES } from '../../constants/roles';
+import { FileText, PlusCircle, ClipboardList, Users, ShieldCheck, LogOut, MapPinned } from 'lucide-react';
+import { ROLES, ROLE_LABELS } from '../../constants/roles';
 import { getCurrentUser, signOutUser } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
 
@@ -26,15 +14,15 @@ import { useToast } from '../../context/ToastContext';
 export default function Sidebar({ activeRole, onCloseMobile }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const user = getCurrentUser();
+  const user = getCurrentUser() || {};
   const shouldReduceMotion = useReducedMotion();
 
   const handleSignOut = () => {
     signOutUser();
     showToast({
       type: 'info',
-      title: 'Signed Out',
-      message: 'You have been safely signed out of CivicFix AI.',
+      title: 'Signed out',
+      message: 'You have been signed out of CivicFix AI.',
     });
     navigate('/login');
   };
@@ -43,41 +31,19 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
   const navItemsByRole = {
     [ROLES.CITIZEN]: [
       {
-        section: 'Overview',
+        section: 'Citizen',
         items: [
-          { to: '/citizen/dashboard', label: 'Citizen Home', icon: LayoutDashboard },
-          { to: '/citizen/complaints', label: 'My Complaints', icon: FileText, badge: '4' },
-          { to: '/citizen/report', label: 'Report New Issue', icon: PlusCircle, isHighlight: true },
+          { to: '/citizen/dashboard', label: 'My reports', icon: FileText },
+          { to: '/citizen/nearby', label: 'Nearby issues', icon: MapPinned },
+          { to: '/citizen/verifications', label: 'Verify repairs', icon: Users },
+          { to: '/citizen/report', label: 'Report new issue', icon: PlusCircle, isHighlight: true },
         ],
       },
     ],
-    [ROLES.COMMITTEE]: [
+    [ROLES.OFFICIAL]: [
       {
-        section: 'Case Operations',
-        items: [
-          { to: '/committee/dashboard', label: 'Operations Desk', icon: LayoutDashboard },
-          { to: '/committee/complaints', label: 'Assigned Queue', icon: ClipboardList, badge: '6' },
-          { to: '/committee/authorities', label: 'Zonal Directory', icon: Building2 },
-        ],
-      },
-    ],
-    [ROLES.ADMIN]: [
-      {
-        section: 'Platform Console',
-        items: [
-          { to: '/admin/dashboard', label: 'System Overview', icon: LayoutDashboard },
-          { to: '/admin/analytics', label: 'Civic Analytics', icon: BarChart3 },
-          { to: '/admin/complaints', label: 'All Complaints', icon: FileText, badge: '1.4k' },
-          { to: '/admin/ai-monitoring', label: 'AI Monitoring', icon: Cpu },
-        ],
-      },
-      {
-        section: 'Governance',
-        items: [
-          { to: '/admin/users', label: 'User Management', icon: Users },
-          { to: '/admin/authorities', label: 'Authority Directory', icon: Building2 },
-          { to: '/admin/activity', label: 'Audit Trail', icon: ShieldAlert },
-        ],
+        section: 'Official',
+        items: [{ to: '/official/dashboard', label: 'Reports queue', icon: ClipboardList }],
       },
     ],
   };
@@ -98,11 +64,7 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
                 CivicFix AI
               </span>
               <span className="text-[10.5px] font-semibold text-primary uppercase tracking-wider">
-                {activeRole === ROLES.CITIZEN
-                  ? 'Citizen Portal'
-                  : activeRole === ROLES.COMMITTEE
-                  ? 'Committee Workspace'
-                  : 'Platform Administration'}
+                {activeRole === ROLES.OFFICIAL ? 'Official Workspace' : 'Citizen Portal'}
               </span>
             </div>
           </div>
@@ -196,7 +158,7 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
             </div>
           </div>
           <span className="text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
-            {activeRole}
+            {ROLE_LABELS[activeRole] || activeRole}
           </span>
         </div>
 
