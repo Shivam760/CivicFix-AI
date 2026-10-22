@@ -31,7 +31,7 @@ This is the single source of truth for category values:
 
 ## 3. users
 
-Stores citizen and official account information.
+Stores citizen, official, and admin account information.
 
 | Column | Type | Rules |
 |---|---|---|
@@ -39,7 +39,14 @@ Stores citizen and official account information.
 | name | VARCHAR(100) | Required |
 | email | VARCHAR(255) | Required, unique ignoring letter case |
 | password_hash | VARCHAR(255) | Required |
-| role | VARCHAR(20) | Required, one of: citizen, official; default citizen |
+| role | VARCHAR(20) | Required, one of: citizen, official, admin; default citizen |
+| approval_status | VARCHAR(20) | Required, one of: approved, pending, rejected; default approved |
+| official_department | VARCHAR(150) | Optional; set for officials who signed up through the API |
+| official_job_title | VARCHAR(100) | Optional; set together with official_department |
+| applied_at | TIMESTAMPTZ | Optional; when the official last sent their application |
+| reviewed_at | TIMESTAMPTZ | Optional; when an admin last approved or rejected the account |
+| reviewed_by_user_id | UUID | Optional, foreign key to users.id; the admin who did it |
+| review_note | VARCHAR(500) | Optional; the admin's note, shown to the official |
 | home_latitude | DOUBLE PRECISION | Optional, range -90 to 90 |
 | home_longitude | DOUBLE PRECISION | Optional, range -180 to 180 |
 | created_at | TIMESTAMPTZ | Required |
@@ -49,7 +56,21 @@ Stores citizen and official account information.
 
 Email uniqueness ignores letter case: `Aarav@example.com` and `aarav@example.com` cannot both exist. It is enforced by a unique index on `lower(email)`. The email is stored as entered, and login looks it up case-insensitively.
 
-Registration always creates a `citizen`. There is no API for changing roles: an administrator makes an account an `official` with `python -m scripts.set_role <email> official`, run from `backend/`.
+### Roles and official approval
+
+- `citizen`: reports issues. Created by registration and approved at once.
+- `official`: works on reports. Anyone can sign up as an official, but the account starts `pending` and can do nothing until an admin approves it (api-contract.md section 13).
+- `admin`: approves and rejects officials, and can use only the admin endpoints. There is no API that creates admins: run `python -m scripts.set_role <email> admin` from `backend/`. The same script can still make an account an `official` or `citizen` directly; it always sets `approval_status` to `approved`.
+
+Rules (CHECK constraints):
+
+- Only officials can be `pending` or `rejected`: `role = 'official' OR approval_status = 'approved'`.
+- `official_department` and `official_job_title` are both null or both set.
+- `reviewed_at` and `reviewed_by_user_id` are both null or both set.
+
+The app cannot check that an applicant really works for an authority. The admin must confirm it outside the app (for example by phoning the department) before approving. Approval records who approved and when; it is not proof.
+
+The department, job title, and review note are shown only to the official themself and to admins. They are never sent to the AI or stored in report events. Accounts are never deleted by a rejection.
 
 ## 4. reports
 

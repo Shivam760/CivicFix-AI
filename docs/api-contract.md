@@ -52,9 +52,9 @@ Common HTTP status codes:
 
 ### POST /api/v1/auth/register
 
-Create a citizen account.
+Create a citizen account, or apply for an official account.
 
-Request:
+Request (citizen):
 
     {
       "name": "Aarav Sharma",
@@ -62,28 +62,49 @@ Request:
       "password": "example-password"
     }
 
+Request (official):
+
+    {
+      "name": "Meera Iyer",
+      "email": "meera@example.com",
+      "password": "example-password",
+      "account_type": "official",
+      "official_department": "Municipal Corporation, Roads",
+      "official_job_title": "Junior Engineer"
+    }
+
 Success: `201 Created`
 
-Response:
+Response (the User object, also returned by `GET /api/v1/auth/me`):
 
     {
       "id": "UUID",
       "name": "Aarav Sharma",
       "email": "aarav@example.com",
       "role": "citizen",
+      "approval_status": "approved",
+      "official_department": null,
+      "official_job_title": null,
+      "applied_at": null,
+      "reviewed_at": null,
+      "review_note": null,
       "home_latitude": null,
       "home_longitude": null,
       "created_at": "2026-10-14T10:00:00Z"
     }
 
 - `home_latitude` and `home_longitude` are the user's own saved home location, or null (see `PUT /api/v1/auth/me/home-location`). They appear only in the user's own account responses.
-- `role` is `citizen` or `official`. Registration always creates a citizen; any `role` sent in the request is ignored. Officials are created by an administrator script (database-schema.md section 3).
+- `role` is `citizen`, `official`, or `admin`. `account_type` chooses `citizen` (the default) or `official`; an admin account cannot be created through the API (database-schema.md section 3). Any `role` sent in the request is ignored.
+- A citizen is `approved` at once. An official starts `pending`, with `applied_at` set, and can do nothing until an admin approves them (section 13).
+- Registration does not log the user in.
 
 Validation:
 
 - `name`: required, 1–100 characters after trimming surrounding spaces.
 - `email`: required, a valid email address, at most 255 characters.
 - `password`: required, 8–128 characters.
+- `account_type`: `citizen` or `official`.
+- `official_department` (2–150 characters) and `official_job_title` (2–100 characters), after trimming: required for an official; must be left out for a citizen.
 
 Errors:
 
@@ -98,7 +119,8 @@ Request:
 
     {
       "email": "aarav@example.com",
-      "password": "example-password"
+      "password": "example-password",
+      "account_type": "citizen"
     }
 
 Success: `200 OK`
@@ -112,6 +134,10 @@ Response:
 
 Invalid credentials: `401 Unauthorized` with code `INVALID_CREDENTIALS`. A wrong password and an unknown email return the same response, so the API does not reveal which emails have accounts. Email is matched ignoring letter case.
 
+`account_type` is optional: `citizen` or `official`, the choice on the sign-in page. When it is sent and the password is correct, the account must match, or the response is `403 Forbidden` with code `WRONG_ACCOUNT_TYPE` (message: "This is a citizen account" or "This is an official account"). Admins sign in with `official`. When it is left out, any account may sign in.
+
+Pending and rejected officials can sign in: their token works only for `GET /api/v1/auth/me` and `PUT /api/v1/auth/me/official-application`, so they can see their status and the admin's note.
+
 Tokens:
 
 - The access token is a JWT signed with HS256 using `SECRET_KEY` from `backend/.env`.
@@ -119,13 +145,41 @@ Tokens:
 - Send it on protected endpoints as `Authorization: Bearer <access_token>`.
 - A missing token returns `401` with code `NOT_AUTHENTICATED`. An invalid or expired token, or one whose user no longer exists, returns `401` with code `INVALID_TOKEN`.
 
+Who can use which endpoints (checked on every request, after the token):
+
+- Citizens and approved officials: every endpoint in sections 3–12, with the rules written there.
+- Pending or rejected officials: only `GET /api/v1/auth/me` and `PUT /api/v1/auth/me/official-application`. Everything else returns `403 Forbidden` with code `ACCOUNT_NOT_APPROVED`.
+- Admins: only `GET /api/v1/auth/me` and section 13. Everything else returns `403 Forbidden` with code `ADMIN_ACCOUNT`.
+- Section 13 returns `403 Forbidden` with code `ADMIN_ONLY` to everyone but admins.
+
 ### GET /api/v1/auth/me
 
-Return the logged-in user. Requires a token.
+Return the logged-in user. Requires a token. Works for every account, including pending and rejected officials.
 
 Success: `200 OK`
 
-Response: the same shape as the register response.
+Response: the User object (see the register response).
+
+### PUT /api/v1/auth/me/official-application
+
+Change the logged-in official's application and send it again, for example after a rejection. Only for officials who are `pending` or `rejected`.
+
+Request:
+
+    {
+      "official_department": "Municipal Corporation, Roads",
+      "official_job_title": "Assistant Engineer"
+    }
+
+- Both fields are required, with the register rules.
+
+Success: `200 OK` with the User object: `approval_status` is `pending`, `applied_at` is now, and `review_note`, `reviewed_at` are cleared.
+
+Errors:
+
+- `403 Forbidden` with code `NOT_AN_OFFICIAL`: The account is not an official account.
+- `409 Conflict` with code `ALREADY_APPROVED`: The official is already approved.
+- `422 Unprocessable Entity`: A field fails validation.
 
 ### PUT /api/v1/auth/me/home-location
 
@@ -949,14 +1003,80 @@ Take back the user's "Me too". Taking back one that does not exist is not an err
 
 Success: `200 OK`, with the same body as above (`my_support` false).
 
-## 13. Future work
+## 13. Official approval (admins)
+
+Admins decide who may act as an official. The app cannot check that an applicant works for an authority: the admin confirms it outside the app before approving (database-schema.md section 3). All endpoints here are for admins only (`403 ADMIN_ONLY` for others).
+
+### Official account object
+
+    {
+      "id": "UUID",
+      "name": "Meera Iyer",
+      "email": "meera@example.com",
+      "approval_status": "pending",
+      "official_department": "Municipal Corporation, Roads",
+      "official_job_title": "Junior Engineer",
+      "applied_at": "2026-10-22T10:00:00Z",
+      "reviewed_at": null,
+      "reviewed_by_name": null,
+      "review_note": null,
+      "created_at": "2026-10-22T10:00:00Z"
+    }
+
+- `official_department`, `official_job_title`, and `applied_at` are null for officials made with the `set_role` script.
+- No home location, password, or report data is included.
+
+### GET /api/v1/admin/officials
+
+List official accounts.
+
+Query parameters:
+
+- `approval_status`: optional, `pending`, `approved`, or `rejected`. Without it, all officials are listed.
+
+Success: `200 OK` with `{"items": [...]}` of Official account objects: pending first (oldest application first, so nobody waits longest), then the rest by name.
+
+### POST /api/v1/admin/officials/{user_id}/approve
+
+Approve a pending or rejected official. They can then use the official endpoints.
+
+Request (optional body):
+
+    {
+      "note": "Confirmed by phone with the Roads department."
+    }
+
+- `note`: optional, at most 500 characters; stored as `review_note` (null when left out).
+
+Success: `200 OK` with the Official account object. Sets `approval_status` to `approved`, `reviewed_at` to now, and `reviewed_by_name` to this admin. Approving an approved official changes nothing.
+
+### POST /api/v1/admin/officials/{user_id}/reject
+
+Reject a pending application, or take back an approved official's access. The account is kept; the official sees the note and may send the application again.
+
+Request:
+
+    {
+      "note": "We could not confirm your job with the department."
+    }
+
+- `note`: required, 1–500 characters after trimming, so the official knows why.
+
+Success: `200 OK` with the Official account object (`approval_status` `rejected`). Rejecting a rejected official replaces the note.
+
+Errors for both:
+
+- `404 Not Found` with code `OFFICIAL_NOT_FOUND`: No official account has this ID.
+- `422 Unprocessable Entity`: The note fails validation.
+
+## 14. Future work
 
 - Expiry for repairs that get too few verification votes.
 - Deleting evidence uploaded by mistake.
 - Detailed jurisdiction matching for authorities.
 - Retry behavior for failed submissions.
 
-## 14. Implementation notes
+## 15. Implementation notes
 
 - The frontend uses these interfaces, or local mocks with exactly the same shapes.
 - The AI workflow must return structured output matching ai-contract.md section 3.
