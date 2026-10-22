@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/dark-palette.css";
 
 @theme {
   --color-primary: var(--color-primary);
@@ -62,6 +63,36 @@
     --color-status-danger-bg: #FEF2F2;
     --color-status-info: #0284C7;
     --color-status-info-bg: #F0F9FF;
+  }
+
+  /* Dark mode for the whole site. ThemeProvider sets data-theme on <html>.
+     Components that use fixed colours are handled in styles/dark-palette.css. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-primary: #10B981;
+    --color-primary-hover: #34D399;
+    --color-primary-light: #0F2A22;
+    --color-primary-border: #1F5C47;
+
+    --color-navy: #ECE9E2;
+    --color-navy-muted: #CFC9BD;
+
+    --color-surface-canvas: #0F1115;
+    --color-surface: #171A21;
+    --color-surface-raised: #1E222B;
+
+    --color-border: #2B303B;
+    --color-border-subtle: #222630;
+    --color-border-strong: #3B4251;
+
+    --color-muted: #A7A196;
+    --color-muted-light: #8C877D;
+
+    --color-status-success-bg: #0F2A22;
+    --color-status-warning-bg: #2E2410;
+    --color-status-danger-bg: #2E1416;
+    --color-status-info-bg: #0E2333;
   }
 
   * {
