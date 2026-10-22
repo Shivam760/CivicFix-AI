@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.errors import ApiError
 from app.models import ComplaintDraft, Report, User
 from app.services.drafts import latest_draft
-from app.services.reports import ensure_not_locked, record_event
+from app.services.reports import ensure_not_closed, ensure_not_locked, record_event
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,7 @@ def submit_report(
     # request waits here, then sees the new submission_status and gets 409.
     db.refresh(report, with_for_update=True)
 
+    ensure_not_closed(report)
     ensure_not_locked(report)  # pending, confirmed, unknown -> 409 REPORT_LOCKED
     draft = approved_latest_draft(db, report)
     if submit is None:

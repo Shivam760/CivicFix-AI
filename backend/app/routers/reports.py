@@ -19,6 +19,7 @@ from app.schemas.report import (
 from app.services.nearby import set_sharing
 from app.services.reports import (
     change_status,
+    ensure_not_closed,
     ensure_not_locked,
     get_owned_report,
     get_visible_report,
@@ -105,6 +106,7 @@ def update_sharing(report_id: uuid.UUID, body: SharingChange, user: CurrentUser,
 @router.patch("/{report_id}", response_model=ReportOut)
 def update_report(report_id: uuid.UUID, body: ReportUpdate, user: CurrentUser, db: DbSession):
     report = get_owned_report(db, report_id, user)
+    ensure_not_closed(report)
     ensure_not_locked(report)
 
     # exclude_unset: only the fields the client actually sent.

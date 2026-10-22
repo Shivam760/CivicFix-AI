@@ -11,7 +11,12 @@ from app.models import ComplaintDraft
 from app.schemas.draft import ApproveRequest, DraftCreate, DraftList, DraftOut
 from app.schemas.report import ReportOut
 from app.services.drafts import add_draft, latest_draft
-from app.services.reports import ensure_not_locked, get_owned_report, record_event
+from app.services.reports import (
+    ensure_not_closed,
+    ensure_not_locked,
+    get_owned_report,
+    record_event,
+)
 
 router = APIRouter(prefix="/reports/{report_id}", tags=["drafts"])
 
@@ -19,6 +24,7 @@ router = APIRouter(prefix="/reports/{report_id}", tags=["drafts"])
 @router.post("/drafts", response_model=DraftOut, status_code=201)
 def create_draft(report_id: uuid.UUID, body: DraftCreate, user: CurrentUser, db: DbSession):
     report = get_owned_report(db, report_id, user)
+    ensure_not_closed(report)
     ensure_not_locked(report)
     try:
         draft = add_draft(db, report, body.text, actor=user)
@@ -51,6 +57,7 @@ def list_drafts(report_id: uuid.UUID, user: CurrentUser, db: DbSession):
 @router.post("/approve", response_model=ReportOut)
 def approve_draft(report_id: uuid.UUID, body: ApproveRequest, user: CurrentUser, db: DbSession):
     report = get_owned_report(db, report_id, user)
+    ensure_not_closed(report)
     ensure_not_locked(report)
 
     latest = latest_draft(db, report)

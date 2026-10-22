@@ -75,6 +75,7 @@ Design documents:
 - Never claim an external complaint was submitted or resolved without reliable confirmation.
 - Approval applies to one specific draft version; any new draft or report edit invalidates it.
 - Reports are locked once a submission is pending, confirmed, or unknown.
+- Closed reports are final: never deleted, and their content can't change.
 - Keep a record of important status changes and AI analysis runs.
 - Do not treat an AI suggestion as a verified fact.
 - A report becomes resolved only through residents' verification votes, never by an official's claim alone.

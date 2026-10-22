@@ -138,7 +138,7 @@ Example:
 
 - The AI workflow is initially a Python function called by the backend (an "analyzer", in backend/app/ai/analyzers.py). `AI_PROVIDER` in backend/.env chooses which one is used.
 - `AI_PROVIDER=fake` (the default) uses a predictable fake analyzer for development and tests. It invents nothing, reports `model_name` as `fake-analyzer`, and adds a warning saying it is not a real AI.
-- `AI_PROVIDER=gemini` calls Google Gemini (backend/app/ai/gemini.py) with `GEMINI_API_KEY` and `GEMINI_MODEL` from backend/.env. If either is missing, analyze returns `503 AI_UNAVAILABLE`. The report is sent as data, with instructions to ignore any instructions inside it. The backend, not the model, fills in `model_metadata`. Tests never call Gemini.
+- `AI_PROVIDER=gemini` calls Google Gemini (backend/app/ai/gemini.py) with `GEMINI_API_KEY` and `GEMINI_MODEL` from backend/.env. If either is missing, analyze returns `503 AI_UNAVAILABLE`. A locked or closed report is refused with `409` before any analyzer runs (api-contract.md section 4). The report is sent as data, with instructions to ignore any instructions inside it. The backend, not the model, fills in `model_metadata`. Tests never call Gemini.
 - Input and output are defined as Pydantic models, used in both local tests and backend integration.
 - The backend validates the output against the output model, including the authority ID check in section 6, before storing or returning it.
 - When this contract changes, update this document, database-schema.md, and api-contract.md together.

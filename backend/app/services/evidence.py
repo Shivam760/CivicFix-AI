@@ -15,7 +15,12 @@ from sqlalchemy.orm import Session
 from app.errors import ApiError
 from app.models import Evidence, Report, User
 from app.services import images
-from app.services.reports import ensure_not_locked, record_event, repair_photos_this_round
+from app.services.reports import (
+    ensure_not_closed,
+    ensure_not_locked,
+    record_event,
+    repair_photos_this_round,
+)
 from app.storage import Storage, StorageError
 
 logger = logging.getLogger(__name__)
@@ -50,6 +55,7 @@ def add_report_photo(
     # Lock the report row until the commit, so two uploads at once can't both
     # pass the photo limit, and a submission can't lock the report midway.
     db.refresh(report, with_for_update=True)
+    ensure_not_closed(report)
     ensure_not_locked(report)
 
     photo_count = db.scalar(

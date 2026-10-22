@@ -131,6 +131,7 @@ Stores every version of a report's complaint draft. Rows are only inserted, neve
 - When an approval is invalidated, the backend clears the three approval columns and records an `approval_invalidated` event in the same transaction.
 - Before any submission, the backend verifies that the approval columns are filled and, as a second safety check, that `approved_draft_id` still points to the report's latest draft.
 - A report is **locked** while its `submission_status` is pending, confirmed, or unknown. While locked, the backend does not edit the report, create new drafts (from the AI or the citizen), or record an approval. See "Locked reports" in api-contract.md section 4.
+- A report whose `status` is `closed` is final. The backend refuses the same changes, and submission, with `409 REPORT_CLOSED`, checked before the lock. See "Closed reports" in api-contract.md section 4.
 
 ## 7. authorities
 

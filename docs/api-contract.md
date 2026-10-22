@@ -205,6 +205,15 @@ A report is **locked** while its `submission_status` is `pending`, `confirmed`, 
 
 This keeps the stored report, drafts, and approval identical to what was sent to the authority.
 
+### Closed reports
+
+A report whose `status` is `closed` is final: no status change leads out of it. The same five endpoints, and `POST /api/v1/reports/{report_id}/submit`, return `409 Conflict` with code `REPORT_CLOSED` for a closed report. Nothing is changed or recorded, and the AI and the integration are not called.
+
+- This is checked before the lock, so a report that is both closed and locked returns `REPORT_CLOSED`.
+- Reading a closed report, its events, drafts, and evidence still works.
+- Unsharing a closed report is still allowed; sharing it is not (section 12).
+- Status changes, repair photos, and votes are already refused by their own rules.
+
 ### POST /api/v1/reports
 
 Create a civic report.
@@ -363,6 +372,7 @@ Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
 - `409 Conflict`: The report is locked (see "Locked reports").
+- `409 Conflict` with code `REPORT_CLOSED`: The report is closed (see "Closed reports").
 - `422 Unprocessable Entity`: A field fails validation, including an `authority_id` that is not a verified authority.
 
 ## 5. AI analysis
@@ -432,6 +442,7 @@ Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
 - `409 Conflict`: The report is locked (see "Locked reports"). No run is started.
+- `409 Conflict` with code `REPORT_CLOSED`: The report is closed (see "Closed reports"). No run is started.
 - `502 Bad Gateway` with code `AI_ANALYSIS_FAILED`: The AI workflow failed or returned invalid output. The run is stored with status `failed` and an `ai_analysis_failed` event is recorded. No draft is created.
 - `503 Service Unavailable` with code `AI_UNAVAILABLE`:
   - `AI_PROVIDER` names no known analyzer, or its settings are missing. No run is started.
@@ -487,6 +498,7 @@ Records a `draft_edited` event. Invalidates any existing approval and records an
 Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
+- `409 Conflict` with code `REPORT_CLOSED`: The report is closed (see "Closed reports").
 - `409 Conflict` with code `REPORT_LOCKED`: The report is locked (see "Locked reports").
 - `409 Conflict` with code `DRAFT_VERSION_CONFLICT`: Another draft was saved at the same moment. Reload the drafts and try again.
 
@@ -526,6 +538,7 @@ Errors:
 
 - `404 Not Found`: The report does not exist or is not accessible.
 - `409 Conflict` with code `DRAFT_NOT_LATEST`: The draft does not exist, belongs to another report, or is not this report's latest draft.
+- `409 Conflict` with code `REPORT_CLOSED`: The report is closed (see "Closed reports").
 - `409 Conflict` with code `REPORT_LOCKED`: The report is locked (see "Locked reports").
 
 Approving the draft that is already approved returns `200 OK` and records no new event.
@@ -554,6 +567,7 @@ Successful responses return the updated Report object.
 Error codes, in the order the backend checks them:
 
 - `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not accessible.
+- `409 Conflict` with code `REPORT_CLOSED`: The report is closed (see "Closed reports").
 - `409 Conflict` with code `REPORT_LOCKED`: `submission_status` is pending, confirmed, or unknown.
 - `409 Conflict` with code `NO_VALID_APPROVAL`: No approval, or the approved draft is not the latest draft.
 - `503 Service Unavailable` with code `SUBMISSION_UNAVAILABLE`: No integration is configured.
@@ -662,6 +676,7 @@ Response: the new Evidence object, with `kind` set to `report_photo`. Records an
 Errors:
 
 - `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or is not the user's own.
+- `409 Conflict` with code `REPORT_CLOSED`: The report is closed (see "Closed reports").
 - `409 Conflict` with code `REPORT_LOCKED`: The report is locked (see "Locked reports").
 - `409 Conflict` with code `EVIDENCE_LIMIT_REACHED`: The report already has 5 photos.
 - `413 Content Too Large` with code `FILE_TOO_LARGE`: The file is larger than 5 MB.

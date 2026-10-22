@@ -10,7 +10,7 @@ from app.errors import ApiError
 from app.models import AgentRun, ComplaintDraft
 from app.schemas.analysis import AnalysisOut
 from app.services.analysis import latest_completed_run, run_analysis
-from app.services.reports import ensure_not_locked, get_owned_report
+from app.services.reports import ensure_not_closed, ensure_not_locked, get_owned_report
 
 router = APIRouter(prefix="/reports/{report_id}", tags=["analysis"])
 
@@ -35,6 +35,7 @@ def analyze_report(
     analyze: Annotated[Analyzer, Depends(get_analyzer)],
 ):
     report = get_owned_report(db, report_id, user)
+    ensure_not_closed(report)
     ensure_not_locked(report)  # analysis creates a new draft, so a locked report is refused
     run, draft = run_analysis(db, report, user, analyze)
     db.refresh(run)

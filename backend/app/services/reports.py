@@ -121,6 +121,12 @@ def repair_photos_this_round(db: Session, report: Report) -> int:
     )
 
 
+def ensure_not_closed(report: Report) -> None:
+    # closed is final (no status moves out of it), so its content is final too.
+    if report.status == "closed":
+        raise ApiError(409, "REPORT_CLOSED", "A closed report can't be changed.")
+
+
 def ensure_not_locked(report: Report) -> None:
     if report.submission_status in LOCKED_SUBMISSION_STATUSES:
         raise ApiError(
