@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import FormField from '../components/FormField';
@@ -49,6 +50,7 @@ export default function SignUpPage() {
     jobTitle: '',
   });
   const isOfficial = formData.accountType === ACCOUNT_TYPES.OFFICIAL;
+  const reduceMotion = useReducedMotion();
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
@@ -131,6 +133,10 @@ export default function SignUpPage() {
           <AccountTypeToggle
             name="signup-account-type"
             legend="I am a"
+            hints={{
+              citizen: 'Report issues on your street and confirm repairs near you.',
+              official: 'Work on reports in your area, once an admin has checked your job.',
+            }}
             value={formData.accountType}
             onChange={(accountType) => setFormData((prev) => ({ ...prev, accountType }))}
             disabled={loading}
@@ -184,8 +190,17 @@ export default function SignUpPage() {
             <PasswordStrength password={formData.password} />
           </div>
 
+          {/* The official's extra fields grow in and out (instant with reduced motion). */}
+          <AnimatePresence initial={false}>
           {isOfficial && (
-            <>
+            <motion.div
+              key="official-fields"
+              initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={reduceMotion ? { opacity: 0, transition: { duration: 0 } } : { height: 0, opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeOut' }}
+              className="space-y-3.5 sm:space-y-4 overflow-hidden px-0.5 -mx-0.5 pt-1"
+            >
               <FormField
                 id="signup-department"
                 name="department"
@@ -221,8 +236,9 @@ export default function SignUpPage() {
                   pages. Until then you can only see the status of your application.
                 </span>
               </div>
-            </>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           <div className="pt-1">
             <PrimaryButton type="submit" loading={loading} disabled={loading}>

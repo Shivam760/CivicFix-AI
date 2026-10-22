@@ -174,6 +174,10 @@ export default function LoginPage() {
           <AccountTypeToggle
             name="login-account-type"
             legend="Sign in as"
+            hints={{
+              citizen: 'Report problems and follow what happens to them.',
+              official: 'For officials and admins. New officials see their application here.',
+            }}
             value={formData.accountType}
             onChange={(accountType) => setFormData((prev) => ({ ...prev, accountType }))}
             disabled={loading}
