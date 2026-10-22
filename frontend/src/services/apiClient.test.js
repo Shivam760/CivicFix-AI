@@ -142,3 +142,40 @@ describe('account access errors (api-contract.md section 3)', () => {
     expect(res.error.code).toBe('WRONG_ACCOUNT_TYPE');
   });
 });
+
+describe('late replies to an earlier session', () => {
+  it('ignore a 401 for a request sent before someone else signed in', async () => {
+    // The official's page asks for a report, then they sign out and a citizen
+    // signs in before the answer arrives.
+    authStorage.setToken('official-token');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        authStorage.setToken('citizen-token');
+        authStorage.setUser({ role: 'citizen' });
+        return { ok: false, status: 401, json: async () => ({ error: { code: 'INVALID_TOKEN', message: 'x' } }) };
+      })
+    );
+
+    const res = await apiRequest('/reports/r1');
+
+    expect(res.ok).toBe(false);
+    expect(authStorage.getToken()).toBe('citizen-token'); // the citizen stays signed in
+    expect(window.location.href).toBe('');
+  });
+
+  it('ignore an ACCOUNT_NOT_APPROVED for an earlier session', async () => {
+    authStorage.setToken('old');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        authStorage.setToken('new');
+        return { ok: false, status: 403, json: async () => ({ error: { code: 'ACCOUNT_NOT_APPROVED', message: 'x' } }) };
+      })
+    );
+
+    await apiRequest('/reports');
+
+    expect(window.location.href).toBe('');
+  });
+});

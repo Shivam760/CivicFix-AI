@@ -89,7 +89,11 @@ function goTo(path) {
 }
 
 // Errors that mean "this account can't be here", not "this request failed".
-function handleAccessErrors(status, error) {
+// sentToken: the token the request was sent with. A late reply to a request
+// from before signing out (or from another account) must not log out or move
+// whoever is signed in now, so it is ignored here.
+function handleAccessErrors(status, error, sentToken) {
+  if (sentToken !== authStorage.getToken()) return;
   // The token expired or is invalid: log out and go to the login page.
   // A wrong password on /auth/login is also 401; that is not an expired session.
   if (status === 401 && error.code !== 'INVALID_CREDENTIALS') {
@@ -137,6 +141,7 @@ async function send(path, { method = 'GET', body, json, timeout = DEFAULT_TIMEOU
  *   apiRequest('/reports/ID/evidence', { method: 'POST', body: formData })
  */
 export async function apiRequest(path, options = {}) {
+  const sentToken = authStorage.getToken(); // the one send() is about to use
   let response;
   try {
     response = await send(path, options);
@@ -151,7 +156,7 @@ export async function apiRequest(path, options = {}) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     const error = toError(response.status, data, `Request failed (HTTP ${response.status}).`);
-    handleAccessErrors(response.status, error);
+    handleAccessErrors(response.status, error, sentToken);
     return { ok: false, status: response.status, error };
   }
   return { ok: true, status: response.status, data };
@@ -162,6 +167,7 @@ export async function apiRequest(path, options = {}) {
  * Call URL.revokeObjectURL(url) when the image is no longer shown.
  */
 export async function apiFetchObjectUrl(path) {
+  const sentToken = authStorage.getToken();
   let response;
   try {
     response = await send(path);
@@ -171,7 +177,7 @@ export async function apiFetchObjectUrl(path) {
   if (!response.ok) {
     const data = await response.json().catch(() => null);
     const error = toError(response.status, data, `Could not load the photo (HTTP ${response.status}).`);
-    handleAccessErrors(response.status, error);
+    handleAccessErrors(response.status, error, sentToken);
     return { ok: false, error };
   }
   const blob = await response.blob();

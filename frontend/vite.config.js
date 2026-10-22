@@ -8,5 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    // Libraries loaded with import() only when needed. Pre-bundle them when the
+    // dev server starts; otherwise Vite discovers them mid-session, re-bundles,
+    // and the open page fails with "504 Outdated Optimize Dep" (a blank page).
+    include: ['lottie-react', 'exifr'],
+  },
 })
-

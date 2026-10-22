@@ -16,6 +16,7 @@ import PendingApprovalPage from './pages/account/PendingApprovalPage';
 import AdminPage from './pages/admin/AdminPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { ROLES } from './constants/roles';
 import ThemeProvider from './context/ThemeProvider';
 import ToastProvider from './components/feedback/ToastProvider';
@@ -43,10 +44,38 @@ const page = (element) => <PageTransitionWrapper>{element}</PageTransitionWrappe
  * Public pages, citizen pages (/citizen/...) and official pages (/official/...).
  * ProtectedRoute sends logged-out users to /login and the wrong role to its own home.
  */
+function PageCrashed() {
+  // Shown instead of a blank screen when a page throws while drawing.
+  return (
+    <div role="alert" className="min-h-screen flex items-center justify-center p-6 bg-surface-canvas text-navy">
+      <div className="max-w-md w-full bg-surface border border-border rounded-2xl p-6 text-center space-y-3 shadow-2xs">
+        <h1 className="text-lg font-bold">Something went wrong on this page</h1>
+        <p className="text-sm text-muted">
+          Reloading usually fixes it. If it keeps happening, the details are in the browser console.
+        </p>
+        <div className="flex justify-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold"
+          >
+            Reload
+          </button>
+          <a href="/" className="px-4 py-2 rounded-xl border border-border text-sm font-bold">
+            Home
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
+    // resetKey: going to another page tries again after a crash.
+    <ErrorBoundary resetKey={location.pathname} fallback={<PageCrashed />}>
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={page(<LandingPage />)} />
@@ -92,6 +121,7 @@ function AnimatedRoutes() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AnimatePresence>
+    </ErrorBoundary>
   );
 }
 

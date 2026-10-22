@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import pinAnimationData from '../../assets/lottie/pin.json';
+import ErrorBoundary from './ErrorBoundary';
 
 // Lazy-load lottie-react to keep initial bundle size lean.
 // lottie-react v3 has no default export (the component is the named export
@@ -30,16 +31,20 @@ export default function EmptyState({
         {shouldReduceMotion ? (
           <FallbackIcon className="w-8 h-8 text-primary" />
         ) : (
-          <Suspense fallback={<FallbackIcon className="w-8 h-8 text-primary/70 animate-pulse" />}>
-            <div className="w-16 h-16 flex items-center justify-center">
-              <LazyLottie
-                src={pinAnimationData}
-                loop={true}
-                autoplay={true}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-          </Suspense>
+          // If the animation library fails to load (a dev-server re-optimize, or
+          // an old tab after a redeploy), show the static icon, not a blank page.
+          <ErrorBoundary fallback={<FallbackIcon className="w-8 h-8 text-primary" />}>
+            <Suspense fallback={<FallbackIcon className="w-8 h-8 text-primary/70 animate-pulse" />}>
+              <div className="w-16 h-16 flex items-center justify-center">
+                <LazyLottie
+                  src={pinAnimationData}
+                  loop={true}
+                  autoplay={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+            </Suspense>
+          </ErrorBoundary>
         )}
       </div>
 
