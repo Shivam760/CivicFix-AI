@@ -25,11 +25,15 @@ def get_db() -> Iterator[Session]:
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_current_user(
+def get_any_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
-    """The logged-in user. Add this to any endpoint that requires login."""
+    """Whoever the token belongs to, approved or not, admin or not.
+
+    Only for the few endpoints every account may use (api-contract.md section 3,
+    "Who can use which endpoints"). Everything else uses get_current_user.
+    """
     if credentials is None:
         raise ApiError(401, "NOT_AUTHENTICATED", "A bearer token is required.")
 
@@ -40,5 +44,29 @@ def get_current_user(
     return user
 
 
+def get_current_user(user: Annotated[User, Depends(get_any_user)]) -> User:
+    """A citizen or an approved official. Add this to any endpoint that requires login.
+
+    Checked on every request, so approving or rejecting an official takes effect
+    at once, even for tokens issued earlier.
+    """
+    if user.role == "admin":
+        raise ApiError(403, "ADMIN_ACCOUNT", "Admin accounts can only use the admin pages.")
+    if user.approval_status != "approved":
+        raise ApiError(
+            403, "ACCOUNT_NOT_APPROVED", "This official account has not been approved by an admin."
+        )
+    return user
+
+
+def get_admin_user(user: Annotated[User, Depends(get_any_user)]) -> User:
+    """An admin. For the admin endpoints (api-contract.md section 13)."""
+    if user.role != "admin":
+        raise ApiError(403, "ADMIN_ONLY", "Only admins can do this.")
+    return user
+
+
+AnyUser = Annotated[User, Depends(get_any_user)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+AdminUser = Annotated[User, Depends(get_admin_user)]
 DbSession = Annotated[Session, Depends(get_db)]

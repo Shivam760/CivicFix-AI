@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
-from app.dependencies import CurrentUser, DbSession
+from app.dependencies import AnyUser, CurrentUser, DbSession
 from app.errors import ApiError
 from app.models import User
 from app.schemas.auth import HomeLocationIn, LoginRequest, RegisterRequest, TokenOut, UserOut
@@ -38,7 +38,8 @@ def login(body: LoginRequest, db: DbSession):
 
 
 @router.get("/me", response_model=UserOut)
-def read_current_user(user: CurrentUser):
+def read_current_user(user: AnyUser):
+    # Every account, so pending officials can see their status and admins their role.
     return user
 
 
