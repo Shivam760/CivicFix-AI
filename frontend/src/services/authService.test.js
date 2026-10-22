@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loginUser, registerUser, getActiveRole, updateOfficialApplication } from './authService';
+import { loginUser, registerUser, getActiveRole, updateOfficialApplication, updateProfile, changePassword } from './authService';
 import { authStorage } from './apiClient';
 
 function fakeStorage() {
@@ -148,5 +148,48 @@ describe('official accounts', () => {
     });
     expect(res.ok).toBe(true);
     expect(authStorage.getUser().approval_status).toBe('pending');
+  });
+});
+
+describe('profile settings', () => {
+  it('saves a trimmed name, stores the user and tells the sidebar', async () => {
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal('window', { location: { pathname: '/profile', href: '' }, dispatchEvent });
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, { ...OFFICIAL, name: 'Asha K' }));
+    vi.stubGlobal('fetch', fetch);
+
+    const res = await updateProfile({ name: '  Asha K  ' });
+
+    expect(fetch.mock.calls[0][0]).toMatch(/\/api\/v1\/auth\/me$/);
+    expect(fetch.mock.calls[0][1].method).toBe('PATCH');
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ name: 'Asha K' });
+    expect(res.ok).toBe(true);
+    expect(authStorage.getUser().name).toBe('Asha K');
+    expect(dispatchEvent).toHaveBeenCalled(); // useCurrentUser redraws the sidebar and top bar
+  });
+
+  it('changes the password with the current one', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce({ ok: true, status: 204, json: async () => { throw new Error('no body'); } });
+    vi.stubGlobal('fetch', fetch);
+
+    const res = await changePassword({ currentPassword: 'old-pass-1', newPassword: 'new-pass-2' });
+
+    expect(fetch.mock.calls[0][0]).toMatch(/\/api\/v1\/auth\/me\/password$/);
+    expect(fetch.mock.calls[0][1].method).toBe('PUT');
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ current_password: 'old-pass-1', new_password: 'new-pass-2' });
+    expect(res.ok).toBe(true); // 204 has no body, and that is fine
+  });
+
+  it('keeps the user signed in when the current password is wrong', async () => {
+    authStorage.setToken('tok');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(json(400, { error: { code: 'CURRENT_PASSWORD_INCORRECT', message: 'The current password is incorrect.' } }))
+    );
+
+    const res = await changePassword({ currentPassword: 'wrong', newPassword: 'new-pass-2' });
+
+    expect(res.error.code).toBe('CURRENT_PASSWORD_INCORRECT');
+    expect(authStorage.getToken()).toBe('tok');
   });
 });

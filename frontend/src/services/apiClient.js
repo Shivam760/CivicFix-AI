@@ -19,6 +19,7 @@ const DEFAULT_TIMEOUT_MS = 15000;
 // when the tab closes. The token expires after 60 minutes anyway (no refresh).
 const TOKEN_KEY = 'civicfix_token';
 const USER_KEY = 'civicfix_user';
+export const USER_CHANGED_EVENT = 'civicfix:user-changed';
 
 export const authStorage = {
   getToken() {
@@ -50,6 +51,18 @@ export const authStorage = {
       else sessionStorage.removeItem(USER_KEY);
     } catch {
       // Ignore storage errors.
+    }
+    // Tell useCurrentUser (sidebar, top bar) to show the new name at once.
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new Event(USER_CHANGED_EVENT));
+    }
+  },
+  // The stored text itself: unchanged text means an unchanged user (for useCurrentUser).
+  getUserSnapshot() {
+    try {
+      return sessionStorage.getItem(USER_KEY);
+    } catch {
+      return null;
     }
   },
   isAuthenticated() {

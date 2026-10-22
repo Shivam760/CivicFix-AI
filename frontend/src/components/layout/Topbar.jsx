@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, Shield } from 'lucide-react';
 import { ROLE_LABELS } from '../../constants/roles';
-import { getCurrentUser } from '../../services/authService';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import ThemeToggle from '../common/ThemeToggle';
 
 /**
@@ -13,7 +13,7 @@ import ThemeToggle from '../common/ThemeToggle';
  */
 export default function Topbar({ onToggleMobileMenu, activeRole }) {
   const [isScrolled, setIsScrolled] = useState(false);
-  const user = getCurrentUser() || {};
+  const user = useCurrentUser() || {};
 
   // Show a border once the page scrolls a little.
   useEffect(() => {

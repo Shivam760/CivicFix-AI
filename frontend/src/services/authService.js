@@ -71,6 +71,23 @@ export function signOutUser() {
   authStorage.clearSession();
 }
 
+// PATCH /auth/me: change your own name. The stored user is updated, so the
+// sidebar and top bar show the new name at once.
+export async function updateProfile({ name }) {
+  const res = await apiRequest('/auth/me', { method: 'PATCH', json: { name: name.trim() } });
+  if (res.ok) authStorage.setUser(res.data);
+  return res;
+}
+
+// PUT /auth/me/password. A wrong current password is 400 CURRENT_PASSWORD_INCORRECT
+// (not 401, so the user stays signed in). Success is 204 with no body.
+export function changePassword({ currentPassword, newPassword }) {
+  return apiRequest('/auth/me/password', {
+    method: 'PUT',
+    json: { current_password: currentPassword, new_password: newPassword },
+  });
+}
+
 // The home location is private: it is only used to find nearby repairs to verify.
 export async function saveHomeLocation({ latitude, longitude }) {
   const res = await apiRequest('/auth/me/home-location', {

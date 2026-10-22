@@ -14,6 +14,7 @@ import NearbyPage from './pages/citizen/NearbyPage';
 import OfficialDashboardPage from './pages/official/OfficialDashboardPage';
 import PendingApprovalPage from './pages/account/PendingApprovalPage';
 import AdminPage from './pages/admin/AdminPage';
+import ProfilePage from './pages/account/ProfilePage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -97,6 +98,16 @@ function AnimatedRoutes() {
           <Route path="dashboard" element={page(<OfficialDashboardPage />)} />
           <Route path="reports/:id" element={page(<ReportDetailPage />)} />
         </Route>
+
+        {/* Every signed-in, approved account: their own name, password (and home). */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              {page(<ProfilePage />)}
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admins: approve and reject officials (the backend allows them nothing else). */}
         <Route

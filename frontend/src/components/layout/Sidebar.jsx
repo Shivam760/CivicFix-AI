@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { FileText, PlusCircle, ClipboardList, Users, ShieldCheck, LogOut, MapPinned, UserCheck } from 'lucide-react';
+import { FileText, PlusCircle, ClipboardList, Users, ShieldCheck, LogOut, MapPinned, UserCheck, Settings } from 'lucide-react';
 import { ROLES, ROLE_LABELS } from '../../constants/roles';
-import { getCurrentUser, signOutUser } from '../../services/authService';
+import { signOutUser } from '../../services/authService';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useToast } from '../../context/ToastContext';
 
 /**
@@ -14,7 +15,8 @@ import { useToast } from '../../context/ToastContext';
 export default function Sidebar({ activeRole, onCloseMobile }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const user = getCurrentUser() || {};
+  // Redraws after a name change on the profile page.
+  const user = useCurrentUser() || {};
   const shouldReduceMotion = useReducedMotion();
 
   const handleSignOut = () => {
@@ -54,7 +56,11 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
     ],
   };
 
-  const navSections = navItemsByRole[activeRole] || navItemsByRole[ROLES.CITIZEN];
+  // Every role also gets its own profile page.
+  const navSections = [
+    ...(navItemsByRole[activeRole] || navItemsByRole[ROLES.CITIZEN]),
+    { section: 'Account', items: [{ to: '/profile', label: 'Profile settings', icon: Settings }] },
+  ];
 
   return (
     <aside className="w-64 bg-surface border-r border-border flex flex-col justify-between h-full select-none transition-colors">
@@ -157,7 +163,12 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
 
       {/* User Profile & Sign Out Footer */}
       <div className="p-3 border-t border-border bg-surface-canvas/60">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-surface border border-border shadow-2xs mb-2">
+        <NavLink
+          to="/profile"
+          onClick={onCloseMobile}
+          title="Profile settings"
+          className="flex items-center justify-between p-2 rounded-xl bg-surface border border-border shadow-2xs mb-2 hover:border-primary/40 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+        >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-full bg-primary/15 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-primary/30">
               {user.name ? user.name.charAt(0) : 'U'}
@@ -170,7 +181,7 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
           <span className="text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
             {ROLE_LABELS[activeRole] || activeRole}
           </span>
-        </div>
+        </NavLink>
 
         <button
           type="button"
