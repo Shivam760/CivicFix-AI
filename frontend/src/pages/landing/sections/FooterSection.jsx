@@ -10,22 +10,6 @@ function GithubIcon(props) {
   );
 }
 
-function TwitterIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...props}>
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
-function LinkedinIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...props}>
-      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-    </svg>
-  );
-}
-
 /**
  * FooterSection
  * 
@@ -48,31 +32,18 @@ export default function FooterSection() {
 
   const footerLinks = {
     platform: [
-      { label: 'Report Grievance', href: '/login' },
-      { label: 'AI Routing Engine', href: '#how-it-works' },
-      { label: 'Platform Architecture', href: '#features' },
-      { label: 'Role Dashboards', href: '#roles' },
+      { label: 'Report an issue', href: '/login' },
+      { label: 'How it works', href: '#how-it-works' },
+      { label: 'Features', href: '#features' },
     ],
     governance: [
-      { label: 'Ward Committees', href: '#roles' },
-      { label: 'Municipal SLA Standards', href: '#impact' },
-      { label: 'Audit Trail & Transparency', href: '#features' },
-      { label: 'Elected Official Portal', href: '#roles' },
-      { label: 'Open Civic Data', href: '#impact' },
+      { label: 'Sign in', href: '/login' },
+      { label: 'Create account', href: '/signup' },
     ],
-    resources: [
-      { label: 'Citizen Handbook', href: '#' },
-      { label: 'FastAPI Integration Docs', href: '#' },
-      { label: 'OpenAPI 3.1 Spec', href: '#' },
-      { label: 'Civic Schema & GIS Standards', href: '#' },
-      { label: 'Community Guidelines', href: '#' },
-    ],
+    resources: [{ label: 'Source code (GitHub)', href: 'https://github.com/Shivam760/CivicFix-AI' }],
     legal: [
-      { label: 'Citizen Privacy Charter', href: '#' },
-      { label: 'Terms of Civic Service', href: '#' },
-      { label: 'Data Sovereignty & Encryption', href: '#' },
-      { label: 'Accessibility Statement (WCAG 2.1 AA)', href: '#' },
-      { label: 'Security Vulnerability Disclosure', href: '#' },
+      { label: 'AI output is a suggestion, not a fact', href: '#features' },
+      { label: 'Not affiliated with any authority', href: '#features' },
     ],
   };
 
@@ -88,47 +59,20 @@ export default function FooterSection() {
           <div className="lg:col-span-2 space-y-5">
             <CivicHeader variant="dark" />
             <p className="text-sm text-[#5C5549] leading-relaxed max-w-sm">
-              Empowering citizens and municipal departments with intelligent triage, 
-              geospatial routing, and transparent SLA tracking for accountable city governance.
+              A college project: citizens report civic problems, AI suggests a complaint draft the citizen
+              approves, officials record progress, and nearby residents confirm repairs.
             </p>
-
-            {/* Live Platform Operational Status */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFFDF8] border border-[#E8E0CE] text-xs font-medium text-[#3E382E] shadow-xs">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-              </span>
-              <span>All Systems Operational • 99.98% Uptime</span>
-            </div>
 
             {/* Social / Community Links */}
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="https://github.com"
+                href="https://github.com/Shivam760/CivicFix-AI"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="CivicFix AI on GitHub"
+                aria-label="CivicFix AI source code on GitHub"
                 className="w-9 h-9 rounded-lg bg-[#FFFDF8] border border-[#E8E0CE] flex items-center justify-center text-[#5C5549] hover:text-[#181A20] hover:border-[#D5C9B3] hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
               >
                 <GithubIcon className="w-4 h-4" />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="CivicFix AI on Twitter"
-                className="w-9 h-9 rounded-lg bg-[#FFFDF8] border border-[#E8E0CE] flex items-center justify-center text-[#5C5549] hover:text-[#181A20] hover:border-[#D5C9B3] hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
-              >
-                <TwitterIcon className="w-4 h-4" />
-              </a>
-              <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="CivicFix AI on LinkedIn"
-                className="w-9 h-9 rounded-lg bg-[#FFFDF8] border border-[#E8E0CE] flex items-center justify-center text-[#5C5549] hover:text-[#181A20] hover:border-[#D5C9B3] hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
-              >
-                <LinkedinIcon className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -155,7 +99,7 @@ export default function FooterSection() {
           {/* Column 2: Governance */}
           <div>
             <h3 className="text-xs font-bold text-[#181A20] uppercase tracking-wider mb-4">
-              Governance
+              Account
             </h3>
             <ul className="space-y-2.5 text-sm">
               {footerLinks.governance.map((link) => (
@@ -174,7 +118,7 @@ export default function FooterSection() {
           {/* Column 3: Resources */}
           <div>
             <h3 className="text-xs font-bold text-[#181A20] uppercase tracking-wider mb-4">
-              Resources
+              Project
             </h3>
             <ul className="space-y-2.5 text-sm">
               {footerLinks.resources.map((link) => (
@@ -193,7 +137,7 @@ export default function FooterSection() {
           {/* Column 4: Legal & Standards */}
           <div>
             <h3 className="text-xs font-bold text-[#181A20] uppercase tracking-wider mb-4">
-              Legal & Trust
+              Please note
             </h3>
             <ul className="space-y-2.5 text-sm">
               {footerLinks.legal.map((link) => (
@@ -224,7 +168,7 @@ export default function FooterSection() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-xs text-[#5C5549]">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Verified Municipal Gateway</span>
+              <span>Not affiliated with any government body</span>
             </div>
 
             {/* Back to top button */}

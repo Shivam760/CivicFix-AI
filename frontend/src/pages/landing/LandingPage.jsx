@@ -7,13 +7,13 @@ import Navbar from './components/Navbar';
 import HeroSection from './sections/HeroSection';
 
 // Below-the-fold sections are lazy-loaded with React.lazy and Suspense
-// for minimal initial bundle size and rapid Largest Contentful Paint (LCP)
-const StatsSection = lazy(() => import('./sections/StatsSection'));
+// for minimal initial bundle size and rapid Largest Contentful Paint (LCP).
+// StatsSection, RolesSection and ImpactSection are not shown: they presented
+// invented numbers, testimonials, real authority names and admin/committee
+// roles that CivicFix does not have.
 const HowItWorksSection = lazy(() => import('./sections/HowItWorksSection'));
 const ProductShowcaseSection = lazy(() => import('./sections/ProductShowcaseSection'));
 const FeaturesSection = lazy(() => import('./sections/FeaturesSection'));
-const RolesSection = lazy(() => import('./sections/RolesSection'));
-const ImpactSection = lazy(() => import('./sections/ImpactSection'));
 const CtaSection = lazy(() => import('./sections/CtaSection'));
 const FooterSection = lazy(() => import('./sections/FooterSection'));
 
@@ -51,8 +51,8 @@ function SectionFallback({ minHeight = 'min-h-[280px]' }) {
 export default function LandingPage() {
   // Set dynamic SEO page title and meta description
   useDocumentTitle(
-    'CivicFix AI — Next-Gen Civic Grievance & Infrastructure Platform',
-    'AI-assisted civic grievance reporting and infrastructure tracking platform. Report potholes, streetlights, garbage, and drainage with instant AI routing to verified municipal authorities.'
+    'CivicFix AI — Report civic issues and follow them to a fix',
+    'Report potholes, garbage and broken streetlights. AI suggests a complaint draft you approve, officials record progress, and nearby residents confirm repairs.'
   );
 
   // Initialize Lenis smooth scroll
@@ -120,10 +120,6 @@ export default function LandingPage() {
         <HeroSection />
 
         {/* Below-the-fold sections lazy-loaded in sequence */}
-        <Suspense fallback={<SectionFallback minHeight="min-h-[160px]" />}>
-          <StatsSection />
-        </Suspense>
-
         <Suspense fallback={<SectionFallback minHeight="min-h-[400px]" />}>
           <HowItWorksSection />
         </Suspense>
@@ -134,14 +130,6 @@ export default function LandingPage() {
 
         <Suspense fallback={<SectionFallback minHeight="min-h-[400px]" />}>
           <FeaturesSection />
-        </Suspense>
-
-        <Suspense fallback={<SectionFallback minHeight="min-h-[400px]" />}>
-          <RolesSection />
-        </Suspense>
-
-        <Suspense fallback={<SectionFallback minHeight="min-h-[300px]" />}>
-          <ImpactSection />
         </Suspense>
 
         <Suspense fallback={<SectionFallback minHeight="min-h-[300px]" />}>

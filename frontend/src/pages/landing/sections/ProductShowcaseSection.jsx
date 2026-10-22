@@ -20,7 +20,7 @@ export default function ProductShowcaseSection() {
         badge={
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-xs font-mono font-bold tracking-widest uppercase shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>LIVE CITIZEN PORTAL SHOWCASE</span>
+            <span>CITIZEN PORTAL PREVIEW</span>
           </div>
         }
         title={
@@ -32,7 +32,7 @@ export default function ProductShowcaseSection() {
               </span>
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-[#5C5549] max-w-2xl mx-auto font-sans leading-relaxed">
-              Inspect the live citizen grievance console — track incident progression from photographic submission to verified municipal engineer sign-off in real time.
+              A preview of the citizen dashboard: your reports, their status, and the repairs waiting for your check.
             </p>
           </div>
         }

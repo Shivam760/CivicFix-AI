@@ -4,12 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import CivicHeader from '../../../components/CivicHeader';
 import MagneticButton from './MagneticButton';
+import ThemeToggle from '../../../components/common/ThemeToggle';
 
 const NAV_LINKS = [
   { label: 'How It Works', href: '#how-it-works', id: 'how-it-works' },
   { label: 'Features', href: '#features', id: 'features' },
-  { label: 'Roles', href: '#roles', id: 'roles' },
-  { label: 'Impact', href: '#impact', id: 'impact' },
 ];
 
 /**
@@ -121,6 +120,7 @@ export default function Navbar() {
 
         {/* Right: Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
           <Link
             to="/login"
             className="px-4 py-2 rounded-xl text-xs font-bold text-[#3E382E] hover:text-[#181A20] hover:bg-[#E8E0CE]/50 transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
@@ -138,7 +138,10 @@ export default function Navbar() {
           </MagneticButton>
         </div>
 
-        {/* Mobile Hamburger Button */}
+        {/* Mobile: theme toggle + hamburger */}
+        <div className="md:hidden ml-auto mr-2">
+          <ThemeToggle />
+        </div>
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

@@ -94,7 +94,7 @@ export default function HowItWorksSection() {
       title: 'Let AI Assist',
       tagline: 'STEP 02',
       description:
-        'AI helps identify the issue category and assess its urgency, making reports easier to organize and prioritize.',
+        'AI suggests a category and drafts the complaint. You check the suggestion, edit the text, and approve the exact version.',
       icon: AIScannerIcon,
       color: 'teal',
       badge: 'Smart Triage',
@@ -105,7 +105,7 @@ export default function HowItWorksSection() {
       title: 'Track the Resolution',
       tagline: 'STEP 03',
       description:
-        'Follow status updates as the responsible team reviews the report and works toward resolving the issue.',
+        'Officials record progress. When they claim a repair, you and nearby residents check it and vote before it counts as resolved.',
       icon: PinProgressIcon,
       color: 'blue',
       badge: 'Full Visibility',
@@ -338,7 +338,7 @@ export default function HowItWorksSection() {
                       </div>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
-                      98.4% CONFIDENCE
+                      EXAMPLE
                     </span>
                   </div>
 
@@ -406,7 +406,7 @@ export default function HowItWorksSection() {
 
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-teal-50 border border-teal-200 text-xs text-teal-900 font-medium">
                     <Sparkles className="w-4 h-4 text-teal-700 shrink-0" />
-                    <span>AI assists engineering officers by auto-tagging reports for expedited review and priority dispatch.</span>
+                    <span>Example only. AI output is a suggestion: the citizen decides what to use.</span>
                   </div>
                 </motion.div>
               )}
@@ -428,7 +428,7 @@ export default function HowItWorksSection() {
                       </div>
                       <div>
                         <h4 className="font-display font-black text-base sm:text-lg text-[#181A20]">
-                          Verified Grievance Resolution Timeline
+                          Example report timeline
                         </h4>
                         <p className="text-xs text-[#5C5549]">
                           Ticket #CF-ORR-150 · Transparent Community Audit

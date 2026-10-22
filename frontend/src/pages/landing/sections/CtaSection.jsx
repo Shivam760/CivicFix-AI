@@ -13,8 +13,8 @@ export default function CtaSection() {
   const shouldReduceMotion = useReducedMotion();
 
   const lines = [
-    'Ready to Transform Your Ward?',
-    'Report Your First Grievance Today.',
+    'Seen a problem on your street?',
+    'Report it in a few minutes.',
   ];
 
   return (
@@ -67,7 +67,7 @@ export default function CtaSection() {
 
           {/* Subtitle */}
           <p className="text-sm sm:text-base lg:text-lg text-emerald-100/90 max-w-2xl mx-auto leading-relaxed font-sans font-normal">
-            Join over 32,000 citizens directly partnering with local ward engineers to restore neighborhood infrastructure safely, transparently, and swiftly.
+            Create a free account, describe the issue, add photos, and follow it until residents confirm it is fixed.
           </p>
 
           {/* Magnetic Button & Secondary Action */}

@@ -187,11 +187,11 @@ export default function HeroSection() {
           >
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-600" />
-              <span>Verified Municipal Intake</span>
+              <span>You approve before anything is sent</span>
             </div>
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-teal-600" />
-              <span>Multi-Modal AI Categorization</span>
+              <span>AI suggestions, clearly labelled</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-700" />

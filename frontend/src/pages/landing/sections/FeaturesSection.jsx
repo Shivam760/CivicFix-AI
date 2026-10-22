@@ -51,61 +51,61 @@ export default function FeaturesSection() {
       id: 'ai-vision',
       colSpan: 'lg:col-span-8',
       category: 'road',
-      badge: 'Vision Model',
-      title: 'Multi-Modal AI Auto-Categorization',
+      badge: 'AI assistant',
+      title: 'AI suggestions you check',
       description:
-        'Advanced computer vision scans photographic uploads to detect damage dimensions, categorize hazard domains, and calculate urgency scores before human review.',
-      tag: '98.8% Intake Precision',
+        'The AI reads your report and suggests a category, a matching authority from the directory, missing details, and a complaint draft. Every suggestion is labelled as one, and nothing is applied until you accept it.',
+      tag: 'Suggestions, not facts',
     },
     {
-      id: 'gis-map',
+      id: 'approval',
       colSpan: 'lg:col-span-4',
       category: 'streetlight',
-      badge: 'GIS Telemetry',
-      title: 'Live Geo-Spatial Ward Mapping',
+      badge: 'Your approval',
+      title: 'You approve the exact text',
       description:
-        'Pinpoint coordinates are mapped against municipal ward boundaries, preventing jurisdictional disputes and duplicate issue logging.',
-      tag: 'Automatic Ward Boundary Lock',
+        'Edit the draft as often as you like; each edit is a new version. Only the version you approve can be sent, and editing clears the approval.',
+      tag: 'Versioned drafts',
     },
     {
-      id: 'photo-vault',
+      id: 'photo-evidence',
       colSpan: 'lg:col-span-4',
       category: 'water',
-      badge: 'Audit Proof',
-      title: 'Tamper-Proof Photo Evidence',
+      badge: 'Photos',
+      title: 'Private photo evidence',
       description:
-        'Contractors must upload geo-tagged, timestamped photographic verification of repaired infrastructure before tickets can be signed off.',
-      tag: 'Cryptographic Timestamping',
+        'Attach up to 5 photos. Location data is stripped from each file, and photos are only visible to you, officials and residents checking a repair.',
+      tag: 'GPS metadata removed',
     },
     {
-      id: 'authorities',
+      id: 'verification',
       colSpan: 'lg:col-span-8',
       category: 'drainage',
-      badge: 'Directory',
-      title: 'Authenticated Municipal Routing',
+      badge: 'Residents decide',
+      title: 'Neighbours confirm repairs',
       description:
-        'Instant triage links directly to verified municipal authorities — BBMP Roads, BWSSB Water, BESCOM Electrical, and Solid Waste Corporations.',
-      tag: 'Zero Bureaucratic Delay',
+        'When an official claims a repair, they add after-repair photos. You and residents living within 2 km check it in person and vote. Only those votes mark it resolved.',
+      tag: 'A claim is not proof',
     },
     {
-      id: 'alerts',
+      id: 'officials',
       colSpan: 'lg:col-span-6',
       category: 'garbage',
-      badge: 'Notifications',
-      title: 'Real-Time Milestone Alerts',
+      badge: 'Officials',
+      title: 'A clear workflow for officials',
       description:
-        'Citizens receive automatic status updates as cases transition from intake to assignment, active repair crew deployment, and final inspection.',
-      tag: 'Multi-Channel Updates',
+        'Officials see every report and move it through review and repair with notes, following the allowed steps. They cannot edit your report or your drafts.',
+      tag: 'Role-based access',
     },
     {
-      id: 'audit-trail',
+      id: 'history',
       colSpan: 'lg:col-span-6',
       category: 'other',
-      badge: 'Governance',
-      title: 'Immutable Public Audit Trail',
+      badge: 'History',
+      title: 'Every step recorded',
       description:
-        'Every status change, engineer note, and completion timestamp is permanently recorded, fostering complete civic transparency and public trust.',
-      tag: 'Open Public Accountability',
+        'Each change, approval, photo and vote is added to the report history, so you can see what happened and when.',
+      tag: 'Event timeline',
     },
   ];
 
@@ -129,7 +129,7 @@ export default function FeaturesSection() {
             Built for High-Velocity Municipal Governance
           </h2>
           <p className="text-sm sm:text-base text-[#5C5549] leading-relaxed font-sans">
-            Combining state-of-the-art vision models, verified directory routing, and tamper-proof field milestones.
+            AI help that stays a suggestion, your approval of every word, and repairs confirmed by the people who live there.
           </p>
         </div>
 
