@@ -3,8 +3,12 @@
 # database-schema.md section 2: the single source of truth for categories.
 ISSUE_CATEGORIES = ("road_damage", "garbage", "streetlight", "other")
 
-# Registration always creates citizens; scripts/set_role.py makes officials.
-USER_ROLES = ("citizen", "official")
+# Registration creates citizens, or officials waiting for approval; only
+# scripts/set_role.py makes admins (database-schema.md section 3).
+USER_ROLES = ("citizen", "official", "admin")
+
+# Only officials are ever pending or rejected; an admin decides.
+APPROVAL_STATUSES = ("approved", "pending", "rejected")
 
 # awaiting_verification: an official claimed the repair; residents' votes decide
 # whether it becomes resolved (database-schema.md section 12).

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from alembic.config import Config
@@ -81,10 +82,87 @@ def test_official_role_accepted(db_session):
     db_session.flush()
 
 
-def test_unknown_role_rejected(db_session):
+def test_admin_role_accepted(db_session):
     db_session.add(make_user(role="admin"))
+    db_session.flush()
+
+
+def test_unknown_role_rejected(db_session):
+    db_session.add(make_user(role="mayor"))
     with pytest.raises(IntegrityError, match="ck_users_role_valid"):
         db_session.flush()
+
+
+# --- Official approval (database-schema.md section 3) ---------------------------
+
+
+def test_new_user_is_approved(db_session):
+    user = make_user()
+    db_session.add(user)
+    db_session.flush()
+    db_session.refresh(user)
+
+    assert user.approval_status == "approved"
+
+
+@pytest.mark.parametrize("status", ["pending", "rejected"])
+def test_official_may_wait_for_approval(db_session, status):
+    db_session.add(
+        make_user(
+            role="official",
+            approval_status=status,
+            official_department="Roads",
+            official_job_title="Engineer",
+        )
+    )
+    db_session.flush()
+
+
+@pytest.mark.parametrize("role", ["citizen", "admin"])
+def test_only_officials_can_be_unapproved(db_session, role):
+    db_session.add(make_user(role=role, approval_status="pending"))
+    with pytest.raises(IntegrityError, match="ck_users_only_officials_unapproved"):
+        db_session.flush()
+
+
+def test_unknown_approval_status_rejected(db_session):
+    db_session.add(make_user(role="official", approval_status="maybe"))
+    with pytest.raises(IntegrityError, match="ck_users_approval_status_valid"):
+        db_session.flush()
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [{"official_department": "Roads"}, {"official_job_title": "Engineer"}],
+    ids=["department_only", "job_title_only"],
+)
+def test_half_the_official_details_rejected(db_session, fields):
+    db_session.add(make_user(role="official", **fields))
+    with pytest.raises(IntegrityError, match="ck_users_official_details_complete"):
+        db_session.flush()
+
+
+def test_review_without_reviewer_rejected(db_session):
+    db_session.add(make_user(role="official", reviewed_at=datetime.now(timezone.utc)))
+    with pytest.raises(IntegrityError, match="ck_users_review_complete"):
+        db_session.flush()
+
+
+def test_review_by_an_admin_accepted(db_session):
+    admin = make_user(role="admin")
+    db_session.add(admin)
+    db_session.flush()
+
+    db_session.add(
+        make_user(
+            role="official",
+            approval_status="rejected",
+            reviewed_at=datetime.now(timezone.utc),
+            reviewed_by_user_id=admin.id,
+            review_note="Could not confirm the job.",
+        )
+    )
+    db_session.flush()
 
 
 def test_new_user_has_no_home_location(db_session):

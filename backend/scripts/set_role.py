@@ -1,9 +1,11 @@
-"""Make an existing account an official, or a citizen again.
+"""Make an existing account a citizen, an official, or an admin.
 
-Run from backend/:  python -m scripts.set_role someone@example.com official
+Run from backend/:  python -m scripts.set_role someone@example.com admin
 
-There is deliberately no API endpoint for this: anyone could call it. Only
-someone with access to the server and its database can change roles.
+This is the only way to make an admin: an API for it would let anyone try.
+Only someone with access to the server and its database can run it. The
+account is always approved afterwards, so an official made here can work
+at once, without an admin (database-schema.md section 3).
 """
 
 import sys
@@ -26,6 +28,8 @@ def set_role(session: Session, email: str, role: str) -> User:
     if user is None:
         raise LookupError(f"No account has the email {email!r}.")
     user.role = role
+    # The person running this is trusted; and only officials may be unapproved.
+    user.approval_status = "approved"
     session.flush()
     return user
 

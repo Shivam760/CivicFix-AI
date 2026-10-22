@@ -18,6 +18,24 @@ def test_official_becomes_citizen_again(db_session, user):
     assert user.role == "citizen"
 
 
+def test_citizen_becomes_admin(db_session, user):
+    set_role(db_session, user.email, "admin")
+
+    db_session.refresh(user)
+    assert (user.role, user.approval_status) == ("admin", "approved")
+
+
+@pytest.mark.parametrize("role", ["official", "citizen"])
+def test_pending_official_is_approved_by_the_script(db_session, user, role):
+    user.role, user.approval_status = "official", "pending"
+    db_session.flush()
+
+    set_role(db_session, user.email, role)
+
+    db_session.refresh(user)
+    assert (user.role, user.approval_status) == (role, "approved")
+
+
 def test_email_is_matched_ignoring_case_and_spaces(db_session, user):
     set_role(db_session, f"  {user.email.upper()} ", "official")
 
@@ -32,7 +50,7 @@ def test_unknown_email_is_reported(db_session):
 
 def test_unknown_role_is_rejected_before_any_change(db_session, user):
     with pytest.raises(ValueError, match="Unknown role"):
-        set_role(db_session, user.email, "admin")
+        set_role(db_session, user.email, "mayor")
 
     db_session.refresh(user)
     assert user.role == "citizen"
