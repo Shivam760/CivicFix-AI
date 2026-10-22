@@ -12,6 +12,7 @@ REPORT_FIELDS = {
     "id", "title", "description", "category", "status", "location_text",
     "latitude", "longitude", "authority_id", "submission_status",
     "approved_draft_id", "approved_at", "external_reference", "submitted_at",
+    "shared_at", "show_name", "reporter_name", "support_count",
     "created_at", "updated_at",
 }
 

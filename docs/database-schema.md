@@ -73,6 +73,8 @@ Stores civic reports.
 | submission_status | VARCHAR(30) | Required, default not_submitted |
 | external_reference | VARCHAR(255) | Optional, set only from a confirmed integration response |
 | submitted_at | TIMESTAMPTZ | Optional, set only when submission is confirmed |
+| shared_at | TIMESTAMPTZ | Optional; set while the owner shares the report with nearby residents (section 13), null = private |
+| show_name | BOOLEAN | Required, default false (anonymous); whether the owner's name is shown to residents and officials |
 | created_at | TIMESTAMPTZ | Required |
 | updated_at | TIMESTAMPTZ | Required |
 
@@ -177,6 +179,7 @@ Event types:
 - approval_invalidated
 - evidence_added
 - verification_vote_recorded
+- report_sharing_changed
 - submission_requested
 - submission_confirmed
 - submission_failed
@@ -347,7 +350,38 @@ Privacy:
 - `verification_vote_recorded` events have no actor (`actor_user_id` null) and only say whether the owner or a nearby resident voted, so the owner does not learn who their neighbours are. `repair_verifications.user_id` keeps the record for auditing.
 - No location is stored with a vote.
 
-## 13. Items to finalize later
+## 13. Nearby issues and report_supports
+
+A report owner may share a report with residents whose home is within 2 km (api-contract.md section 12). Reports are private by default (`reports.shared_at` null) and anonymous by default (`reports.show_name` false).
+
+Rules (checked by the backend):
+
+- Sharing requires the report's latitude and longitude, and the report must not be `closed`. Unsharing is always allowed.
+- A shared report is visible to a user only if it is not `closed`, belongs to someone else, the user is not an official, and the user's home is at most 2 km away. The "already reported?" check (`GET /api/v1/nearby/around`) also lists shared, non-closed reports within 200 m of a point the user gives; "Me too" still needs the home rule. Home locations are self-declared, so shared reports should be treated as visible to any logged-in resident.
+- When `show_name` is false, nobody but the owner sees the owner's name: not residents and not officials. The API returns no owner ID to residents.
+- Each change records a `report_sharing_changed` event with the owner as actor and metadata `{"shared": ..., "show_name": ...}`.
+
+### report_supports
+
+Stores residents' "Me too": they see the same problem.
+
+| Column | Type | Rules |
+|---|---|---|
+| id | UUID | Primary key |
+| report_id | UUID | Required, foreign key to reports.id |
+| user_id | UUID | Required, foreign key to users.id; the resident |
+| created_at | TIMESTAMPTZ | Required |
+
+Constraints:
+
+- Unique (report_id, user_id): one "Me too" per person per report. Taking it back deletes the row.
+- Index: report_supports (report_id).
+
+Privacy:
+
+- The owner and officials see only the count (`support_count`), never who supported. No event is recorded for supports.
+
+## 14. Items to finalize later
 
 - External submission retry behavior.
 - Whether soft deletion is required for user accounts or reports.

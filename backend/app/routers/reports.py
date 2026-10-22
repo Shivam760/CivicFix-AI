@@ -8,7 +8,15 @@ from app.dependencies import CurrentUser, DbSession
 from app.errors import ApiError
 from app.models import Authority, Report
 from app.schemas.common import IssueCategory, ReportStatus
-from app.schemas.report import ReportCreate, ReportList, ReportOut, ReportUpdate, StatusChange
+from app.schemas.report import (
+    ReportCreate,
+    ReportList,
+    ReportOut,
+    ReportUpdate,
+    SharingChange,
+    StatusChange,
+)
+from app.services.nearby import set_sharing
 from app.services.reports import (
     change_status,
     ensure_not_locked,
@@ -83,6 +91,14 @@ def update_status(report_id: uuid.UUID, body: StatusChange, user: CurrentUser, d
     change_status(db, report, body.status, user, body.note)
     db.commit()
     db.refresh(report)
+    return report
+
+
+@router.put("/{report_id}/sharing", response_model=ReportOut)
+def update_sharing(report_id: uuid.UUID, body: SharingChange, user: CurrentUser, db: DbSession):
+    # Owner only: officials and other users get 404, like any other change.
+    report = get_owned_report(db, report_id, user)
+    set_sharing(db, report, user, body.shared, body.show_name)
     return report
 
 

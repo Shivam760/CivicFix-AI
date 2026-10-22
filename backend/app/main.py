@@ -11,6 +11,7 @@ from app.routers import (
     drafts,
     events,
     evidence,
+    nearby,
     reports,
     submission,
     verifications,
@@ -42,6 +43,7 @@ app.include_router(evidence.router, prefix=API_PREFIX)
 app.include_router(analysis.router, prefix=API_PREFIX)
 app.include_router(submission.router, prefix=API_PREFIX)
 app.include_router(verifications.router, prefix=API_PREFIX)
+app.include_router(nearby.router, prefix=API_PREFIX)
 
 
 @app.get("/")

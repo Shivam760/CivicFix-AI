@@ -81,8 +81,22 @@ class ReportOut(BaseModel):
     approved_at: datetime | None
     external_reference: str | None
     submitted_at: datetime | None
+    # Nearby issues (api-contract.md section 12).
+    shared_at: datetime | None
+    show_name: bool
+    reporter_name: str | None  # null unless the owner chose to show their name
+    support_count: int  # residents who said "Me too"
     created_at: datetime
     updated_at: datetime
+
+
+class SharingChange(BaseModel):
+    """PUT /reports/{id}/sharing body."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    shared: bool
+    show_name: bool
 
 
 class ReportList(BaseModel):

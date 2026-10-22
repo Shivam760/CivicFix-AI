@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Double,
@@ -11,7 +12,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.choices import (
@@ -91,9 +92,24 @@ class Report(Base):
     )
     external_reference: Mapped[str | None] = mapped_column(String(255))
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Nearby issues (database-schema.md section 13): set while the owner shares
+    # the report with residents within 2 km; null means private.
+    shared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # False (the default) = anonymous: the owner's name is shown to nobody else,
+    # neither residents nor officials.
+    show_name: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    # The owner, loaded with one extra query for a whole list ("selectin"),
+    # only to show their name when show_name is true.
+    owner: Mapped["User"] = relationship(foreign_keys=[user_id], lazy="selectin")  # noqa: F821
+
+    @property
+    def reporter_name(self) -> str | None:
+        """The owner's name if they chose to show it, else None (anonymous)."""
+        return self.owner.name if self.show_name else None

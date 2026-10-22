@@ -47,6 +47,7 @@ Rules:
 - `available_authorities` contains only verified authorities from the backend's maintained directory. Unverified authorities are never sent to the AI, so every entry has `verification_status` set to `verified`.
 - The AI must not invent authority records or change their verification status.
 - The backend stores this exact input in `agent_runs.input_snapshot`.
+- The input never contains the reporter's name or ID, sharing settings, "Me too" counts, or anyone's home location (database-schema.md section 13).
 
 ## 3. Output schema
 

@@ -8,6 +8,7 @@ from app.models.evidence import Evidence
 from app.models.repair_verification import RepairVerification
 from app.models.report import Report
 from app.models.report_event import ReportEvent
+from app.models.report_support import ReportSupport
 from app.models.user import User
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "RepairVerification",
     "Report",
     "ReportEvent",
+    "ReportSupport",
     "User",
 ]

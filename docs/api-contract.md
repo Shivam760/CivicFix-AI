@@ -177,6 +177,10 @@ Every endpoint that returns a report uses this shape:
       "approved_at": null,
       "external_reference": null,
       "submitted_at": null,
+      "shared_at": null,
+      "show_name": false,
+      "reporter_name": null,
+      "support_count": 0,
       "created_at": "2026-10-14T10:00:00Z",
       "updated_at": "2026-10-14T10:00:00Z"
     }
@@ -185,6 +189,9 @@ Every endpoint that returns a report uses this shape:
 - `submission_status` is one of: not_submitted, pending, confirmed, failed, unknown.
 - `approved_draft_id` and `approved_at` are set only while a valid approval exists.
 - `external_reference` and `submitted_at` are set only after a confirmed submission.
+- `shared_at` is set while the owner shares the report with nearby residents (section 12), else null. `show_name` is the owner's choice to show their name; it is false (anonymous) by default.
+- `reporter_name` is the owner's name when `show_name` is true, else null, for everyone including officials. Clients show null as "Anonymous resident".
+- `support_count` is how many residents said "Me too" (section 12).
 
 ### Locked reports
 
@@ -306,6 +313,29 @@ Errors:
 - `409 Conflict` with code `INVALID_STATUS_TRANSITION`: The change is not in the table above, including setting the current status again.
 - `409 Conflict` with code `REPAIR_PHOTO_REQUIRED`: Moving to `awaiting_verification` without a repair photo from the current repair round.
 - `422 Unprocessable Entity`: Unknown status, missing status, or a note that is too long.
+
+### PUT /api/v1/reports/{report_id}/sharing
+
+Share the report with residents whose home is within 2 km, or stop sharing it, and choose whether the owner's name is shown. Owner only.
+
+Request:
+
+    {
+      "shared": true,
+      "show_name": false
+    }
+
+- `shared`: required, boolean.
+- `show_name`: required, boolean. Also applies to officials: when false they see no name either.
+
+Success: `200 OK` with the Report object. Records a `report_sharing_changed` event (metadata: `shared`, `show_name`) when something changed; sending the current values changes nothing. Sharing again does not reset `shared_at`. Not affected by the submission lock.
+
+Errors:
+
+- `404 Not Found` with code `REPORT_NOT_FOUND`: The report does not exist or the user is not its owner (also for officials).
+- `409 Conflict` with code `LOCATION_REQUIRED`: Sharing a report without latitude and longitude.
+- `409 Conflict` with code `REPORT_CLOSED`: Sharing a closed report. Unsharing is always allowed.
+- `422 Unprocessable Entity`: Missing or unknown fields.
 
 ### PATCH /api/v1/reports/{report_id}
 
@@ -791,14 +821,127 @@ Errors:
 - `409 Conflict` with code `ALREADY_VOTED`: The user already voted in this round.
 - `422 Unprocessable Entity`: Missing or unknown verdict.
 
-## 12. Future work
+## 12. Nearby issues
+
+Residents see problems their neighbours reported, and can say "Me too". A report appears on a user's Nearby issues page only while all of these hold (otherwise the endpoints below return `404 Not Found` with code `REPORT_NOT_FOUND`):
+
+- its owner shares it (`PUT /api/v1/reports/{report_id}/sharing`, section 4);
+- it is not `closed`;
+- it belongs to someone else (owners see their reports under `GET /api/v1/reports`);
+- the user's saved home location is within 2 km of the report (great-circle distance).
+
+Officials already see every report, so all `/nearby` endpoints return `403 Forbidden` with code `NEARBY_FORBIDDEN` for them.
+
+Residents see only what helps them recognise the problem: no owner ID, drafts, AI output, approval or submission fields, status-change notes, repair photos, or anyone's home location. The reporter's name only when the owner chose to show it.
+
+### Nearby report object
+
+    {
+      "report_id": "UUID",
+      "title": "Pothole near the market",
+      "description": "A large pothole is making the road unsafe.",
+      "category": "road_damage",
+      "status": "under_review",
+      "location_text": "Near the main market",
+      "latitude": 30.7,
+      "longitude": 76.8,
+      "distance_km": 0.8,
+      "reporter_name": null,
+      "created_at": "2026-10-14T10:00:00Z",
+      "updated_at": "2026-10-15T09:00:00Z",
+      "support_count": 2,
+      "my_support": false,
+      "can_support": true,
+      "status_history": [
+        { "status": "reported", "at": "2026-10-14T10:00:00Z" },
+        { "status": "under_review", "at": "2026-10-15T09:00:00Z" }
+      ],
+      "photos": [
+        {
+          "id": "UUID",
+          "content_type": "image/jpeg",
+          "description": "The hole is about one metre wide.",
+          "uploaded_at": "2026-10-14T10:01:00Z"
+        }
+      ]
+    }
+
+- `distance_km` is the distance between the report and the user's home, rounded to 0.1 km. In `GET /api/v1/nearby/around` it is the distance from the given point instead, rounded to 0.001 km.
+- `reporter_name` is null when the reporter is anonymous.
+- `my_support` is true if the user said "Me too".
+- `can_support` is true if the user may say "Me too", which needs the report on their Nearby issues page. It can only be false in `GET /api/v1/nearby/around`.
+- `status_history` starts with `reported` at `created_at`, followed by each status change in order, with only the new status and its time.
+- `photos` lists the report's `report_photo` evidence, oldest first, without uploader IDs or file names.
+
+### GET /api/v1/nearby
+
+List the user's nearby issues, nearest first.
+
+Success: `200 OK`
+
+    {
+      "items": []
+    }
+
+Each item is a Nearby report object.
+
+Errors:
+
+- `409 Conflict` with code `HOME_LOCATION_REQUIRED`: The user has not saved a home location.
+
+### GET /api/v1/nearby/around
+
+"Already reported?" check while creating a report: other people's shared, non-closed reports within 200 m of a point, nearest first. Needs no home location. It shows nothing more than a user could see by saving a home near that point.
+
+Query parameters:
+
+- `latitude`: required, -90 to 90.
+- `longitude`: required, -180 to 180.
+
+Success: `200 OK`, with `{"items": [...]}` of Nearby report objects (distance from the point).
+
+Errors:
+
+- `403 Forbidden` with code `NEARBY_FORBIDDEN`: The user is an official.
+- `422 Unprocessable Entity`: Missing or out-of-range coordinates.
+
+### GET /api/v1/nearby/{report_id}
+
+One Nearby report object.
+
+### GET /api/v1/nearby/{report_id}/photos/{evidence_id}/file
+
+Download one of the report's problem photos, with the same response as `GET /api/v1/reports/{report_id}/evidence/{evidence_id}/file`. Repair photos and other reports' photos return `404 Not Found` with code `EVIDENCE_NOT_FOUND`.
+
+### POST /api/v1/nearby/{report_id}/support
+
+Say "Me too": the user sees this problem too. One per person per report.
+
+Success: `201 Created`
+
+    {
+      "support_count": 3,
+      "my_support": true
+    }
+
+Errors:
+
+- `409 Conflict` with code `ALREADY_SUPPORTED`: The user already said "Me too".
+
+### DELETE /api/v1/nearby/{report_id}/support
+
+Take back the user's "Me too". Taking back one that does not exist is not an error.
+
+Success: `200 OK`, with the same body as above (`my_support` false).
+
+## 13. Future work
 
 - Expiry for repairs that get too few verification votes.
 - Deleting evidence uploaded by mistake.
 - Detailed jurisdiction matching for authorities.
 - Retry behavior for failed submissions.
 
-## 13. Implementation notes
+## 14. Implementation notes
 
 - The frontend uses these interfaces, or local mocks with exactly the same shapes.
 - The AI workflow must return structured output matching ai-contract.md section 3.

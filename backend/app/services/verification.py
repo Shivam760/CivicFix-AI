@@ -80,26 +80,32 @@ def has_location(report: Report) -> bool:
     return report.latitude is not None and report.longitude is not None
 
 
+def near_point_box(latitude: float, longitude: float, radius_km: float):
+    """SQL condition: the report lies in a box around the point.
+
+    A quick filter for the database; callers check the exact distance after.
+    111 km per degree is slightly less than the real value, so the box is a
+    little too big rather than too small. (The box ignores the 180th meridian,
+    which is far from any expected user.)
+    """
+    lat_margin = radius_km / 111.0
+    lon_margin = lat_margin / max(math.cos(math.radians(latitude)), 0.01)
+    return and_(
+        Report.latitude.between(latitude - lat_margin, latitude + lat_margin),
+        Report.longitude.between(longitude - lon_margin, longitude + lon_margin),
+    )
+
+
+def near_home_box(user: User, radius_km: float):
+    """near_point_box around the user's home. The user must have a home location."""
+    return near_point_box(user.home_latitude, user.home_longitude, radius_km)
+
+
 def list_verifiable_reports(db: Session, user: User) -> list[Report]:
     """The reports the user may verify now: their own, and nearby ones."""
     candidates = [Report.user_id == user.id]
     if user.home_latitude is not None:
-        # A quick box around the home, filtered in SQL; the exact distance is
-        # checked below. 111 km per degree is slightly less than the real
-        # value, so the box is a little too big rather than too small. (The box
-        # ignores the 180th meridian, which is far from any expected user.)
-        lat_margin = VERIFICATION_RADIUS_KM / 111.0
-        lon_margin = lat_margin / max(math.cos(math.radians(user.home_latitude)), 0.01)
-        candidates.append(
-            and_(
-                Report.latitude.between(
-                    user.home_latitude - lat_margin, user.home_latitude + lat_margin
-                ),
-                Report.longitude.between(
-                    user.home_longitude - lon_margin, user.home_longitude + lon_margin
-                ),
-            )
-        )
+        candidates.append(near_home_box(user, VERIFICATION_RADIUS_KM))
     reports = db.scalars(
         select(Report).where(Report.status == "awaiting_verification", or_(*candidates))
     )
