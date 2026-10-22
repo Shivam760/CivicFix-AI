@@ -431,7 +431,7 @@ export default function HowItWorksSection() {
                           Example report timeline
                         </h4>
                         <p className="text-xs text-[#5C5549]">
-                          Ticket #CF-ORR-150 · Transparent Community Audit
+                          Made-up example · every status change is kept
                         </p>
                       </div>
                     </div>
@@ -444,40 +444,40 @@ export default function HowItWorksSection() {
                     <div className="relative">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 absolute -left-[35px] top-0.5 bg-white rounded-full" />
                       <div className="font-display font-bold text-sm text-[#181A20]">
-                        Citizen Report Submitted &amp; GPS Tagged
+                        Report created
                       </div>
                       <div className="text-xs text-[#5C5549] mt-0.5">
-                        Oct 14, 09:15 AM · Photographic proof and coordinates registered
+                        Oct 14, 09:15 AM · Photos added and pinned on the map
                       </div>
                     </div>
 
                     <div className="relative">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 absolute -left-[35px] top-0.5 bg-white rounded-full" />
                       <div className="font-display font-bold text-sm text-[#181A20]">
-                        AI Triage &amp; Urgency Prioritization Complete
+                        AI suggestion checked by the citizen
                       </div>
                       <div className="text-xs text-[#5C5549] mt-0.5">
-                        Oct 14, 09:16 AM · Assigned High Priority Tier 1 based on traffic impact
+                        Oct 14, 09:20 AM · Category and complaint draft approved by the citizen
                       </div>
                     </div>
 
                     <div className="relative">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 absolute -left-[35px] top-0.5 bg-white rounded-full" />
                       <div className="font-display font-bold text-sm text-[#181A20]">
-                        Municipal Ward Inspection Acknowledged
+                        Under review
                       </div>
                       <div className="text-xs text-[#5C5549] mt-0.5">
-                        Oct 14, 11:30 AM · Ward 150 Road Engineer reviewed and queued for repair
+                        Oct 14, 11:30 AM · An official looked at the report
                       </div>
                     </div>
 
                     <div className="relative">
                       <Clock className="w-5 h-5 text-amber-600 absolute -left-[35px] top-0.5 bg-white rounded-full animate-pulse" />
                       <div className="font-display font-bold text-sm text-amber-800">
-                        Asphalt Repair Crew Scheduled
+                        In progress
                       </div>
                       <div className="text-xs text-amber-900 mt-0.5 font-medium">
-                        Oct 15, 08:00 AM · Maintenance team dispatched for surface resurfacing
+                        Oct 15, 08:00 AM · Repair started. Neighbours will confirm when it's fixed
                       </div>
                     </div>
                   </div>
@@ -485,9 +485,9 @@ export default function HowItWorksSection() {
                   <div className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E8E0CE] flex items-center justify-between text-xs text-[#5C5549]">
                     <div className="flex items-center gap-2">
                       <FileCheck2 className="w-4 h-4 text-emerald-600" />
-                      <span>Every step logged with immutable timestamps for community trust.</span>
+                      <span>Every status change is saved in the report's history.</span>
                     </div>
-                    <span className="font-mono text-[10px] text-[#7E7566]">Verified Public Record</span>
+                    <span className="font-mono text-[10px] text-[#7E7566]">Example</span>
                   </div>
                 </motion.div>
               )}

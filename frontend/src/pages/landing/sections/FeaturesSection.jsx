@@ -126,7 +126,7 @@ export default function FeaturesSection() {
             Core Architecture
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-black text-[#181A20] tracking-tight mb-4">
-            Built for High-Velocity Municipal Governance
+            Built for Neighbourhoods
           </h2>
           <p className="text-sm sm:text-base text-[#5C5549] leading-relaxed font-sans">
             AI help that stays a suggestion, your approval of every word, and repairs confirmed by the people who live there.

@@ -341,7 +341,7 @@ export default function CivicIllustration({ className = '', _variant = 'desktop'
             fontFamily="ui-monospace, monospace"
             letterSpacing="0.8px"
           >
-            VERIFIED MUNICIPAL DISPATCH
+            EXAMPLE REPORT
           </text>
           <text
             x="392"
@@ -353,7 +353,7 @@ export default function CivicIllustration({ className = '', _variant = 'desktop'
             textAnchor="end"
             letterSpacing="0.4px"
           >
-            #CF-4821
+            SAMPLE
           </text>
 
           {/* Header Row: Checkmark Badge + "Report received" Title */}
@@ -385,7 +385,7 @@ export default function CivicIllustration({ className = '', _variant = 'desktop'
             fontWeight="500"
             fontFamily="var(--font-sans), system-ui, sans-serif"
           >
-            Assigned: Dept. of Public Works
+            Status: Reported
           </text>
 
           {/* Progress / Status Bar */}
@@ -404,7 +404,7 @@ export default function CivicIllustration({ className = '', _variant = 'desktop'
             textAnchor="middle"
             letterSpacing="0.4px"
           >
-            ACTION IN PROGRESS
+            NEW REPORT
           </text>
         </motion.g>
       </svg>

@@ -276,7 +276,7 @@ export default function CivicLogo3DShowcase({ className = '' }) {
 
             {/* Laser-Etched Coordinate Watermarks */}
             <text x="100" y="52" textAnchor="middle" fill="#34D399" fontSize="6" fontFamily="monospace" opacity="0.75" letterSpacing="1.2">
-              CIVICFIX AI · BBMP WARD 150
+              CIVICFIX AI · CIVIC REPORTS
             </text>
             <text x="100" y="60" textAnchor="middle" fill="#94A3B8" fontSize="4.8" fontFamily="monospace" opacity="0.6" letterSpacing="0.8">
               12.9716° N · 77.5946° E
@@ -438,12 +438,12 @@ export default function CivicLogo3DShowcase({ className = '' }) {
       >
         <Activity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
         <div className="flex items-center gap-1.5">
-          <span className="text-emerald-900">AI MODEL CF-v4</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">99.4%</span>
+          <span className="text-emerald-900">AI SUGGESTS</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">YOU APPROVE</span>
         </div>
       </motion.div>
 
-      {/* Bottom-Left Badge: Verified Municipal Gateway */}
+      {/* Bottom-Left Badge: neighbours check repairs */}
       <motion.div
         animate={isAnimated ? { y: [6, -6, 6] } : {}}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
@@ -451,17 +451,17 @@ export default function CivicLogo3DShowcase({ className = '' }) {
       >
         <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
         <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
-        <span>BBMP DISPATCH · WARD 150</span>
+        <span>NEIGHBOURS VERIFY REPAIRS</span>
       </motion.div>
 
-      {/* Bottom-Right Badge: Active SLA Resolution Tracking */}
+      {/* Bottom-Right Badge: status history */}
       <motion.div
         animate={isAnimated ? { y: [-5, 5, -5] } : {}}
         transition={{ duration: 4.6, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute bottom-5 right-1 sm:right-6 z-30 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFFDF8]/95 backdrop-blur-md border border-[#E8E0CE] text-[#181A20] shadow-xl text-[11px] font-mono font-bold"
       >
         <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-        <span>SLA RESOLUTION · 48H</span>
+        <span>TRACKED UNTIL FIXED</span>
       </motion.div>
     </div>
   );

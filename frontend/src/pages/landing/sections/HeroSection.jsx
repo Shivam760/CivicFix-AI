@@ -78,7 +78,7 @@ export default function HeroSection() {
       {/* Outer Margin Decorative Technical Rulers (Making use of left & right screen space) */}
       <div className="hidden 2xl:flex flex-col justify-between absolute left-6 top-36 bottom-20 z-10 text-[10px] font-mono text-[#7E7566] select-none pointer-events-none border-l border-[#E8E0CE] pl-3">
         <span>SYS: ONLINE</span>
-        <span className="rotate-90 origin-left tracking-widest uppercase">BBMP SOUTH WARD 150</span>
+        <span className="rotate-90 origin-left tracking-widest uppercase">YOUR NEIGHBOURHOOD</span>
         <span>LAT 12.9716° N</span>
       </div>
       <div className="hidden 2xl:flex flex-col justify-between absolute right-6 top-36 bottom-20 z-10 text-[10px] font-mono text-[#7E7566] text-right select-none pointer-events-none border-r border-[#E8E0CE] pr-3">
@@ -146,7 +146,7 @@ export default function HeroSection() {
             transition={{ duration: 0.5, delay: 0.28, ease: 'easeOut' }}
             className="text-base sm:text-lg lg:text-xl text-[#5C5549] max-w-2xl leading-relaxed font-sans font-normal"
           >
-            Report potholes, overflowing bins, broken streetlights, and other civic issues in seconds. CivicFix AI helps identify problems, prioritize urgent reports, and keep communities informed from report to resolution.
+            Report potholes, overflowing bins, broken streetlights, and other civic issues in seconds. CivicFix AI suggests a category and a complaint draft for you to check, and neighbours confirm when a repair is really done.
           </motion.p>
 
           {/* Action CTAs */}

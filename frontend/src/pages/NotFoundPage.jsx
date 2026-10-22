@@ -44,7 +44,7 @@ export default function NotFoundPage() {
       </main>
 
       <footer className="text-center text-xs text-stone-500 py-4 max-w-4xl mx-auto w-full">
-        &copy; 2026 CivicFix AI &bull; Smart Municipal Infrastructure Portal
+        &copy; 2026 CivicFix AI &bull; Civic issue reporting
       </footer>
     </div>
   );

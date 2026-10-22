@@ -14,7 +14,7 @@ export default function CivicHeader({ className = '', variant = 'dark' }) {
       <Link
         to="/"
         className="inline-flex items-center gap-3.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xl px-2 py-1.5 transition-all"
-        aria-label="CivicFix AI Municipal Portal"
+        aria-label="CivicFix AI home"
       >
         {/* 3D Distinctive Brand Mark Emblem */}
         <CivicLogo3D size="md" animated={true} interactive={true} className="group-hover:scale-105 transition-transform" />
@@ -36,7 +36,7 @@ export default function CivicHeader({ className = '', variant = 'dark' }) {
           <span className={`text-[11.5px] font-medium tracking-tight ${
             isLight ? 'text-slate-300' : 'text-slate-500'
           }`}>
-            Municipal Infrastructure Grievance Portal
+            Civic issue reporting
           </span>
         </div>
       </Link>

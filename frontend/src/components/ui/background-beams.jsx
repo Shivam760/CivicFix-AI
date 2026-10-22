@@ -80,11 +80,11 @@ export function BackgroundBeams({ className = '' }) {
           LAT 12.9716° N / SENSOR GRID
         </text>
         <text x="1416" y="240" fill="#7E7566" fontSize="9" fontFamily="monospace" textAnchor="end" opacity="0.7">
-          LON 77.5946° E / MUNICIPAL BBMP
+          LON 77.5946° E / CIVIC GRID
         </text>
 
         <text x="24" y="480" fill="#7E7566" fontSize="9" fontFamily="monospace" opacity="0.7">
-          ORR CORRIDOR / WARD 150
+          STREET LEVEL / NEIGHBOURHOOD
         </text>
         <text x="1416" y="480" fill="#7E7566" fontSize="9" fontFamily="monospace" textAnchor="end" opacity="0.7">
           STATUS: INGESTION ONLINE

@@ -93,7 +93,7 @@ export default function CtaSection() {
           {/* Security Seal */}
           <div className="pt-4 flex items-center justify-center gap-2 text-xs text-emerald-200/80 font-mono">
             <ShieldCheck className="w-4 h-4 text-emerald-300" />
-            <span>Official Municipal Grievance &amp; Public Safety Protocol</span>
+            <span>Nothing is sent anywhere without your approval</span>
           </div>
         </div>
       </div>

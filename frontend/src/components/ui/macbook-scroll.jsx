@@ -68,7 +68,7 @@ export function MacbookScroll({
                 <source srcSet={src} type="image/webp" />
                 <img
                   src="/images/dashboard-preview.png"
-                  alt="CivicFix AI Citizen Grievance Portal Dashboard on MacBook Display"
+                  alt="CivicFix AI citizen dashboard on a laptop screen"
                   className="w-full h-full object-cover object-top"
                   loading="lazy"
                 />

@@ -79,7 +79,7 @@ export default function DashboardLayout({
 
           {/* Institutional Footer */}
           <footer className="py-4 px-6 border-t border-border text-center text-xs text-muted font-medium bg-surface/60">
-            &copy; 2026 CivicFix AI &bull; Smart Municipal Infrastructure Platform
+            &copy; 2026 CivicFix AI &bull; Civic issue reporting
           </footer>
         </div>
       </div>

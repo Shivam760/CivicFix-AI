@@ -363,7 +363,7 @@ export default function ZonalTelemetryMap({
             strokeDasharray="5 5"
           />
           <text x="210" y="220" fill="#059669" fontSize="9" fontFamily="monospace" fontWeight="bold" opacity="0.65" letterSpacing="1">
-            MUNICIPAL WARD 150 BOUNDARY
+            2 KM NEIGHBOURHOOD
           </text>
         </svg>
 
@@ -428,7 +428,7 @@ export default function ZonalTelemetryMap({
         {/* Bottom-Right Satellite Telemetry Status Chip */}
         <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 bg-[#FFFDF8]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#E8E0CE] text-[9.5px] font-mono text-emerald-800 shadow-xs">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>SATELLITE TELEMETRY &bull; WARD 150 &bull; {zoomLevel}x</span>
+          <span>ILLUSTRATIVE MAP &bull; {zoomLevel}x</span>
         </div>
 
         {/* ========================================================= */}
