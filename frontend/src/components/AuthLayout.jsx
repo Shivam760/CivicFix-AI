@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import CivicHeader from './CivicHeader';
 import ThemeToggle from './common/ThemeToggle';
 import CivicIllustration from './CivicIllustration';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { ShieldCheck, Activity, Lock, Sparkles } from 'lucide-react';
 
 /**
@@ -60,6 +61,9 @@ export default function AuthLayout({
   pageKey = 'auth',
 }) {
   const shouldReduceMotion = useReducedMotion();
+  // Render only one layout: hiding the other with CSS would leave a second
+  // copy of the form in the page, with the same input IDs.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   // Dignified, restrained entrance motion (no flash, no jarring effects)
   const pageEntranceVariants = {
@@ -110,7 +114,8 @@ export default function AuthLayout({
       {/* ========================================================================= */}
       {/* DESKTOP / TABLET DUAL-AUTHORITY SPLIT LAYOUT (>= 1024px)                  */}
       {/* ========================================================================= */}
-      <main className="hidden lg:flex w-full min-h-screen relative z-10 py-8 lg:py-12 px-6 sm:px-8 lg:px-12 max-w-[1240px] xl:max-w-[1360px] mx-auto items-center justify-center">
+      {isDesktop ? (
+      <main className="flex w-full min-h-screen relative z-10 py-8 lg:py-12 px-6 sm:px-8 lg:px-12 max-w-[1240px] xl:max-w-[1360px] mx-auto items-center justify-center">
         {/* If Forgot Password (Centered Layout) */}
         {isCenter ? (
           <div className="w-full flex flex-col items-center justify-center p-4 max-w-xl mx-auto my-auto">
@@ -154,7 +159,7 @@ export default function AuthLayout({
                         Empowering Citizens. <span className="text-emerald-700">Restoring Communities.</span>
                       </h2>
                       <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                        Report infrastructure problems, monitor municipal response orders, and improve public neighborhood safety.
+                        Report problems on your street, follow every status change, and confirm repairs with your neighbours.
                       </p>
                     </div>
 
@@ -166,7 +171,7 @@ export default function AuthLayout({
                         </div>
                         <div className="text-left">
                           <div className="text-xs font-bold text-stone-900">Road Infrastructure &amp; Hazards</div>
-                          <div className="text-[11px] text-stone-600 font-medium">Capture geo-tagged road damage for priority inspection.</div>
+                          <div className="text-[11px] text-stone-600 font-medium">Pin potholes and road damage on the map, with photos.</div>
                         </div>
                       </div>
 
@@ -176,7 +181,7 @@ export default function AuthLayout({
                         </div>
                         <div className="text-left">
                           <div className="text-xs font-bold text-stone-900">Sanitation &amp; Waste Management</div>
-                          <div className="text-[11px] text-stone-600 font-medium">Automated routing for waste overflow and drainage.</div>
+                          <div className="text-[11px] text-stone-600 font-medium">Report overflowing bins and blocked drains.</div>
                         </div>
                       </div>
 
@@ -200,11 +205,11 @@ export default function AuthLayout({
                     <div className="pt-2.5 border-t border-[#E5DAC4]/60 flex items-center justify-around text-center text-[11px] font-semibold text-stone-600">
                       <div className="flex items-center gap-1.5">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Verified Citizen Intake</span>
+                        <span>You approve every draft</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Activity className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Direct Municipal Routing</span>
+                        <span>Neighbours verify repairs</span>
                       </div>
                     </div>
                   </div>
@@ -222,7 +227,7 @@ export default function AuthLayout({
                         </span>
                       </div>
                       <span className="text-[11px] font-mono text-emerald-800 font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/70 border border-emerald-300/60">
-                        Live Operations
+                        Community Reports
                       </span>
                     </div>
 
@@ -234,10 +239,10 @@ export default function AuthLayout({
                     {/* Civic Impact Statement */}
                     <div className="w-full pt-3.5 border-t border-[#E5DAC4]/60">
                       <h3 className="text-base sm:text-lg font-bold text-stone-900 tracking-tight">
-                        Smart Civic Reporting &amp; Rapid Public Works Dispatch
+                        Smart Civic Reporting &amp; Neighbour-Verified Repairs
                       </h3>
                       <p className="text-xs sm:text-sm text-stone-600 mt-1 max-w-md mx-auto leading-relaxed">
-                        AI-assisted issue intake, transparent triage, and verified infrastructure resolution for local municipalities.
+                        AI suggestions you approve, a clear status history, and repairs confirmed by the people who live there.
                       </p>
                     </div>
                   </div>
@@ -271,7 +276,7 @@ export default function AuthLayout({
                       </span>
                     </div>
                     <span className="text-[11px] font-mono text-emerald-800 font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/70 border border-emerald-300/60">
-                      Live Operations
+                      Community Reports
                     </span>
                   </div>
 
@@ -283,10 +288,10 @@ export default function AuthLayout({
                   {/* Civic Impact Statement */}
                   <div className="w-full pt-3.5 border-t border-[#E5DAC4]/60">
                     <h3 className="text-base sm:text-lg font-bold text-stone-900 tracking-tight">
-                      Smart Civic Reporting &amp; Rapid Public Works Dispatch
+                      Smart Civic Reporting &amp; Neighbour-Verified Repairs
                     </h3>
                     <p className="text-xs sm:text-sm text-stone-600 mt-1 max-w-md mx-auto leading-relaxed">
-                      AI-assisted issue intake, transparent triage, and verified infrastructure resolution for local municipalities.
+                      AI suggestions you approve, a clear status history, and repairs confirmed by the people who live there.
                     </p>
                   </div>
                 </div>
@@ -305,11 +310,12 @@ export default function AuthLayout({
           </div>
         )}
       </main>
-
+      ) : (
+      <>
       {/* ========================================================================= */}
       {/* MOBILE & TABLET LAYOUT (< 1024px)                                         */}
       {/* ========================================================================= */}
-      <main className="lg:hidden flex flex-col min-h-screen px-4 sm:px-6 pt-6 pb-16 max-w-lg mx-auto w-full relative z-10 justify-center">
+      <main className="flex flex-col min-h-screen px-4 sm:px-6 pt-6 pb-16 max-w-lg mx-auto w-full relative z-10 justify-center">
         {/* Top Header */}
         <div className="w-full flex items-center justify-between mb-4">
           <CivicHeader />
@@ -332,7 +338,7 @@ export default function AuthLayout({
                 Public Infrastructure Network
               </span>
               <p className="text-[11px] text-stone-600 font-medium mt-0.5">
-                AI-assisted civic grievance reporting and municipal resolution.
+                AI-assisted civic reporting, with repairs confirmed by neighbours.
               </p>
             </div>
           </div>
@@ -341,9 +347,11 @@ export default function AuthLayout({
         {/* Mobile Footer with Security Seal */}
         <footer className="mt-6 pt-4 pb-2 text-center text-[11px] text-stone-600 font-medium border-t border-[#E5DAC4] flex items-center justify-center gap-1.5">
           <Lock className="w-3 h-3 text-emerald-600" />
-          <span>Official Municipal Infrastructure Grievance Portal</span>
+          <span>CivicFix AI · community issue reporting</span>
         </footer>
       </main>
+      </>
+      )}
     </motion.div>
   );
 }
