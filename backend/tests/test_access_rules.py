@@ -46,14 +46,20 @@ def headers_for(user) -> dict:
     return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
-def protected_endpoints() -> list[tuple[str, str]]:
+ADMIN_PREFIX = "/api/v1/admin"
+
+
+def protected_endpoints(admin_pages: bool = False) -> list[tuple[str, str]]:
     """Every (method, path) in the API that needs a token, with sample IDs filled in.
 
     Read from the OpenAPI schema (the list /docs shows), so new endpoints are
-    checked without editing this file.
+    checked without editing this file. admin_pages=True gives only the admin
+    endpoints (section 13); False gives all the others.
     """
     found = []
     for path, operations in app.openapi()["paths"].items():
+        if path.startswith(ADMIN_PREFIX) != admin_pages:
+            continue
         for method in sorted(m.upper() for m in operations):
             if (method, path) in PUBLIC | ANY_ACCOUNT:
                 continue
@@ -63,9 +69,24 @@ def protected_endpoints() -> list[tuple[str, str]]:
     return found
 
 
-def test_the_route_list_is_not_empty():
+def test_the_route_lists_are_not_empty():
     # Guards the tests below: an empty list would make them pass without checking anything.
     assert len(protected_endpoints()) > 25
+    assert len(protected_endpoints(admin_pages=True)) == 3
+
+
+@pytest.mark.parametrize(
+    "role, status",
+    [("citizen", "approved"), ("official", "approved"), ("official", "pending")],
+)
+@pytest.mark.parametrize("method, path", protected_endpoints(admin_pages=True))
+def test_only_admins_use_the_admin_pages(client, db_session, method, path, role, status):
+    user = make_account(db_session, role, status)
+
+    response = client.request(method, path, headers=headers_for(user))
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "ADMIN_ONLY"
 
 
 @pytest.mark.parametrize("method, path", protected_endpoints())

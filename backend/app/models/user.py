@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import CheckConstraint, DateTime, Double, ForeignKey, Index, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.choices import APPROVAL_STATUSES, USER_ROLES, sql_list
@@ -64,6 +64,10 @@ class User(Base):
         ForeignKey("users.id", ondelete="RESTRICT")
     )
     review_note: Mapped[str | None] = mapped_column(String(500))
+    # The admin behind reviewed_by_user_id, loaded only when used (the admin page).
+    reviewed_by: Mapped["User | None"] = relationship(
+        foreign_keys=[reviewed_by_user_id], remote_side="User.id"
+    )
     # Self-declared, private home location, used only to find nearby repairs
     # the user may verify (database-schema.md section 12).
     home_latitude: Mapped[float | None] = mapped_column(Double)
@@ -74,6 +78,11 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    @property
+    def reviewed_by_name(self) -> str | None:
+        """The name of the admin who last approved or rejected this account."""
+        return self.reviewed_by.name if self.reviewed_by else None
 
 
 # Case-insensitive uniqueness: Aarav@example.com and aarav@example.com count as
