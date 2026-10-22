@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { FileText, PlusCircle, ClipboardList, Users, ShieldCheck, LogOut, MapPinned } from 'lucide-react';
+import { FileText, PlusCircle, ClipboardList, Users, ShieldCheck, LogOut, MapPinned, UserCheck } from 'lucide-react';
 import { ROLES, ROLE_LABELS } from '../../constants/roles';
 import { getCurrentUser, signOutUser } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
@@ -46,6 +46,12 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
         items: [{ to: '/official/dashboard', label: 'Reports queue', icon: ClipboardList }],
       },
     ],
+    [ROLES.ADMIN]: [
+      {
+        section: 'Admin',
+        items: [{ to: '/admin', label: 'Official accounts', icon: UserCheck }],
+      },
+    ],
   };
 
   const navSections = navItemsByRole[activeRole] || navItemsByRole[ROLES.CITIZEN];
@@ -64,7 +70,11 @@ export default function Sidebar({ activeRole, onCloseMobile }) {
                 CivicFix AI
               </span>
               <span className="text-[10.5px] font-semibold text-primary uppercase tracking-wider">
-                {activeRole === ROLES.OFFICIAL ? 'Official Workspace' : 'Citizen Portal'}
+                {activeRole === ROLES.ADMIN
+                  ? 'Admin'
+                  : activeRole === ROLES.OFFICIAL
+                    ? 'Official Workspace'
+                    : 'Citizen Portal'}
               </span>
             </div>
           </div>

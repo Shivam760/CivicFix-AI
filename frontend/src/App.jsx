@@ -13,6 +13,7 @@ import VerificationsPage from './pages/citizen/VerificationsPage';
 import NearbyPage from './pages/citizen/NearbyPage';
 import OfficialDashboardPage from './pages/official/OfficialDashboardPage';
 import PendingApprovalPage from './pages/account/PendingApprovalPage';
+import AdminPage from './pages/admin/AdminPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { ROLES } from './constants/roles';
@@ -67,6 +68,16 @@ function AnimatedRoutes() {
           <Route path="dashboard" element={page(<OfficialDashboardPage />)} />
           <Route path="reports/:id" element={page(<ReportDetailPage />)} />
         </Route>
+
+        {/* Admins: approve and reject officials (the backend allows them nothing else). */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              {page(<AdminPage />)}
+            </ProtectedRoute>
+          }
+        />
 
         {/* Pending or rejected officials: their application, nothing else. */}
         <Route
