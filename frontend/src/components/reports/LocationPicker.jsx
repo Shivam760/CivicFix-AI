@@ -31,6 +31,20 @@ function FollowPin({ position }) {
   return null;
 }
 
+// Leaflet measures its box once, when it appears. Inside a pop-up that is
+// still opening (animating), that size is wrong and grey tiles show, so
+// measure again whenever the box changes size.
+function KeepSizeRight() {
+  const map = useMap();
+  useEffect(() => {
+    const box = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
 // Small round button floating on the map (above Leaflet's layers).
 const mapButton =
   'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface/95 backdrop-blur border border-border shadow-md text-xs font-bold text-navy hover:text-primary hover:bg-surface transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-default';
@@ -46,7 +60,8 @@ const mapButton =
  * Props: latitude, longitude ('' or number/string), onChange(latitude, longitude),
  *        onPlaceFound(name) (optional: a chosen search result's name),
  *        onAddressFound(name) (optional: the address where the pin was put),
- *        disabled, idPrefix
+ *        disabled, idPrefix,
+ *        mapHeight (optional Tailwind height classes; the pop-up makes it taller)
  */
 export default function LocationPicker({
   latitude,
@@ -56,6 +71,7 @@ export default function LocationPicker({
   onAddressFound,
   disabled,
   idPrefix = 'map',
+  mapHeight = 'h-64 sm:h-80',
 }) {
   const tiles = useMapTiles();
   const autocomplete = supportsAutocomplete();
@@ -206,7 +222,7 @@ export default function LocationPicker({
       </div>
 
       {/* isolate keeps Leaflet's high z-index layers below our dialogs. */}
-      <div className="relative isolate h-64 sm:h-80 rounded-2xl overflow-hidden border border-border shadow-xs">
+      <div className={`relative isolate ${mapHeight} rounded-2xl overflow-hidden border border-border shadow-xs`}>
         <MapContainer
           center={position || DEFAULT_CENTER}
           zoom={position ? 16 : 12}
@@ -222,6 +238,7 @@ export default function LocationPicker({
               interactive={false}
             />
           )}
+          <KeepSizeRight />
           <ClickToPlace onPick={pick} disabled={disabled} />
           <FollowPin position={position} />
           {position && (

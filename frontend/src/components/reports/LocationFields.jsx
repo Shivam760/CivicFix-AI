@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapPin, Sparkles } from 'lucide-react';
-import { inputClass, labelClass } from './ui';
-import LocationPicker from './LocationPicker';
+import { MapPin, MapPinned, Sparkles } from 'lucide-react';
+import { btnSecondary, inputClass, labelClass } from './ui';
+import MapPickerDialog from './MapPickerDialog';
+import MapPreview from './MapPreview';
 
 /**
  * LocationFields
@@ -18,6 +19,8 @@ import LocationPicker from './LocationPicker';
 export default function LocationFields({ form, onChange, disabled, idPrefix = 'loc' }) {
   const autoText = useRef(''); // the last description we filled in ourselves
   const [suggestion, setSuggestion] = useState('');
+  const [mapOpen, setMapOpen] = useState(false); // the map pop-up
+  const hasPin = form.latitude !== '' && form.latitude != null && form.longitude !== '' && form.longitude != null;
   // The address arrives a moment after the pin moves; read the text as it is then.
   const currentText = useRef(form.location_text);
   useEffect(() => {
@@ -78,19 +81,51 @@ export default function LocationFields({ form, onChange, disabled, idPrefix = 'l
         <span className={labelClass}>
           Exact spot on the map <span className="text-rose-500">*</span>
         </span>
-        <LocationPicker
-          idPrefix={idPrefix}
-          latitude={form.latitude}
-          longitude={form.longitude}
-          disabled={disabled}
-          onChange={(lat, lng) => {
-            onChange('latitude', lat);
-            onChange('longitude', lng);
-          }}
-          onPlaceFound={offerAddress}
-          onAddressFound={offerAddress}
-        />
+        {hasPin ? (
+          <div className="space-y-2">
+            <MapPreview
+              latitude={form.latitude}
+              longitude={form.longitude}
+              onClick={() => !disabled && setMapOpen(true)}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] text-muted tabular-nums">
+                {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}
+              </span>
+              <button type="button" className={btnSecondary} onClick={() => setMapOpen(true)} disabled={disabled}>
+                <MapPinned className="w-3.5 h-3.5" /> Change on map
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setMapOpen(true)}
+            disabled={disabled}
+            className="w-full flex flex-col items-center justify-center gap-1.5 h-32 rounded-2xl border-2 border-dashed border-border bg-surface-canvas hover:border-primary hover:text-primary text-muted transition-colors cursor-pointer disabled:opacity-60"
+          >
+            <MapPinned className="w-6 h-6" />
+            <span className="text-xs font-bold">Choose on map</span>
+            <span className="text-[11px]">Search an address, use your location, or click the map</span>
+          </button>
+        )}
       </div>
+
+      <MapPickerDialog
+        open={mapOpen}
+        idPrefix={`${idPrefix}-map`}
+        title="Where exactly is the problem?"
+        description="Put the pin on the spot, so officials can find it and neighbours can check the repair."
+        latitude={form.latitude}
+        longitude={form.longitude}
+        onCancel={() => setMapOpen(false)}
+        onConfirm={({ latitude, longitude, address }) => {
+          onChange('latitude', latitude);
+          onChange('longitude', longitude);
+          setMapOpen(false);
+          if (address) offerAddress(address);
+        }}
+      />
     </div>
   );
 }
