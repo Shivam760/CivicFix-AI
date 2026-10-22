@@ -1,0 +1,150 @@
+/*
+ * Leaflet's built-in controls, popups and attribution, restyled with our
+ * theme tokens (index.css), so they follow light and dark mode.
+ * Imported by components/reports/mapSetup.js.
+ */
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--color-surface-canvas);
+  cursor: crosshair;
+}
+.leaflet-container .leaflet-interactive,
+.leaflet-container .leaflet-marker-icon {
+  cursor: pointer;
+}
+.leaflet-dragging .leaflet-container,
+.leaflet-container.leaflet-drag-target {
+  cursor: grabbing;
+}
+
+/* Tiles: OpenStreetMap's colours tinted to fit the page. Light mode: a bit
+   softer and warmer (our cream background). Dark mode: inverted and toned
+   down, with hue-rotate putting water back to blue and parks to green. */
+.leaflet-tile-pane {
+  filter: saturate(0.8) sepia(0.12) brightness(1.02);
+}
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.88) saturate(0.55);
+}
+/* Geoapify's tiles already have a light and a dark style (mapSetup.js). */
+.cf-styled .leaflet-tile-pane,
+:root[data-theme="dark"] .cf-styled .leaflet-tile-pane {
+  filter: none;
+}
+
+/* Zoom buttons: one rounded card, like our other buttons. */
+.leaflet-bar {
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08) !important;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 30px !important;
+  background: var(--color-surface) !important;
+  color: var(--color-navy) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+.leaflet-bar a:last-child {
+  border-bottom: none !important;
+}
+.leaflet-bar a:hover {
+  background: var(--color-surface-canvas) !important;
+  color: var(--color-primary) !important;
+}
+.leaflet-bar a.leaflet-disabled {
+  color: var(--color-muted-light) !important;
+  opacity: 0.6;
+}
+
+/* Attribution: required, but small and quiet. */
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent) !important;
+  color: var(--color-muted) !important;
+  font-size: 10px !important;
+  border-top-left-radius: 0.5rem;
+  backdrop-filter: blur(4px);
+}
+.leaflet-control-attribution a {
+  color: var(--color-primary) !important;
+}
+
+/* Popups: our card style. */
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface) !important;
+  color: var(--color-navy) !important;
+  border: 1px solid var(--color-border);
+  border-radius: 0.875rem !important;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15) !important;
+}
+.leaflet-popup-content {
+  margin: 10px 14px !important;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.leaflet-popup-tip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border);
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--color-muted) !important;
+}
+
+/* Keyboard focus stays visible, in our primary colour. */
+.leaflet-container a:focus-visible,
+.leaflet-marker-icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Our SVG pin (mapSetup.js pinIcon): no Leaflet box, a soft shadow, and a
+   small drop each time a pin is placed. */
+.cf-pin {
+  background: none;
+  border: none;
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.3));
+}
+.cf-pin svg {
+  animation: cf-pin-drop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 50% 100%;
+}
+@keyframes cf-pin-drop {
+  from {
+    transform: translateY(-14px) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* The home badge on the Nearby map. */
+.cf-home {
+  background: none;
+  border: none;
+}
+.cf-home span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: var(--color-navy);
+  color: var(--color-surface);
+  border: 3px solid var(--color-surface);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-pin svg {
+    animation: none;
+  }
+}
