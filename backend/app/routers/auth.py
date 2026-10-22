@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
@@ -9,6 +9,8 @@ from app.schemas.auth import (
     HomeLocationIn,
     LoginRequest,
     OfficialApplicationIn,
+    PasswordChange,
+    ProfileUpdate,
     RegisterRequest,
     TokenOut,
     UserOut,
@@ -92,6 +94,31 @@ def login(body: LoginRequest, db: DbSession):
 def read_current_user(user: AnyUser):
     # Every account, so pending officials can see their status and admins their role.
     return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_profile(body: ProfileUpdate, user: AnyUser, db: DbSession):
+    """Change your own name (api-contract.md section 3). Every account may."""
+    user.name = body.name
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/me/password", status_code=204)
+def change_password(body: PasswordChange, user: AnyUser, db: DbSession):
+    """Change your own password. The current one is required."""
+    # 400, not 401: a 401 would make the frontend sign the user out.
+    if not verify_password(body.current_password, user.password_hash):
+        raise ApiError(400, "CURRENT_PASSWORD_INCORRECT", "The current password is incorrect.")
+    if verify_password(body.new_password, user.password_hash):
+        raise ApiError(
+            400, "PASSWORD_UNCHANGED", "The new password must be different from the current one."
+        )
+    user.password_hash = hash_password(body.new_password)
+    db.commit()
+    # Older tokens keep working until they expire (api-contract.md section 3).
+    return Response(status_code=204)
 
 
 @router.put("/me/home-location", response_model=UserOut)

@@ -81,3 +81,21 @@ class HomeLocationIn(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class ProfileUpdate(BaseModel):
+    """PATCH /auth/me body. Only the name for now; anything else is a 422."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name
+
+
+class PasswordChange(BaseModel):
+    """PUT /auth/me/password body. The current password proves it is really them."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Not checked for length: a wrong one just gets CURRENT_PASSWORD_INCORRECT.
+    current_password: Annotated[str, Field(max_length=128)]
+    new_password: Password

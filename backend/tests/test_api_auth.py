@@ -483,3 +483,124 @@ def test_invalid_application_rejected(client, rejected_official, body):
     response = client.put(APPLICATION, json=body, headers=rejected_official)
 
     assert response.status_code == 422
+
+
+# --- profile: PATCH /auth/me and PUT /auth/me/password ---------------------------
+
+PASSWORD_URL = "/api/v1/auth/me/password"
+
+
+def signed_in(client, address, **register_overrides) -> dict:
+    register(client, address, **register_overrides)
+    return token_headers(login(client, address))
+
+
+def test_change_name(client, db_session, email):
+    headers = signed_in(client, email)
+
+    response = client.patch(ME, json={"name": "  Aarav S. Sharma  "}, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Aarav S. Sharma"  # trimmed
+    assert account(db_session, email).name == "Aarav S. Sharma"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{"name": "   "}, {"name": "a" * 101}, {}, {"name": "Ok", "role": "admin"}, {"name": "Ok", "email": "x@example.com"}],
+    ids=["blank", "too_long", "missing", "role", "email"],
+)
+def test_invalid_profile_change_rejected(client, db_session, email, body):
+    headers = signed_in(client, email)
+
+    response = client.patch(ME, json=body, headers=headers)
+
+    assert response.status_code == 422
+    user = account(db_session, email)
+    assert (user.name, user.role, user.email) == ("Aarav Sharma", "citizen", email)
+
+
+def test_change_password_then_sign_in_with_it(client, email):
+    headers = signed_in(client, email)
+
+    response = client.put(
+        PASSWORD_URL,
+        json={"current_password": PASSWORD, "new_password": "a new password 2"},
+        headers=headers,
+    )
+
+    assert response.status_code == 204
+    assert login(client, email, password="a new password 2").status_code == 200
+    assert login(client, email).status_code == 401  # the old one no longer works
+
+
+def test_wrong_current_password_is_400_not_401(client, db_session, email):
+    headers = signed_in(client, email)
+    old_hash = account(db_session, email).password_hash
+
+    response = client.put(
+        PASSWORD_URL,
+        json={"current_password": "not my password", "new_password": "a new password 2"},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert error_code(response) == "CURRENT_PASSWORD_INCORRECT"
+    assert account(db_session, email).password_hash == old_hash
+
+
+def test_new_password_must_differ(client, email):
+    headers = signed_in(client, email)
+
+    response = client.put(
+        PASSWORD_URL, json={"current_password": PASSWORD, "new_password": PASSWORD}, headers=headers
+    )
+
+    assert error_code(response) == "PASSWORD_UNCHANGED"
+
+
+@pytest.mark.parametrize("new_password", ["short", "a" * 129])
+def test_new_password_length_checked(client, email, new_password):
+    headers = signed_in(client, email)
+
+    response = client.put(
+        PASSWORD_URL, json={"current_password": PASSWORD, "new_password": new_password}, headers=headers
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["details"][0]["field"] == "new_password"
+
+
+def test_new_password_is_stored_as_a_hash(client, db_session, email):
+    headers = signed_in(client, email)
+
+    client.put(
+        PASSWORD_URL,
+        json={"current_password": PASSWORD, "new_password": "a new password 2"},
+        headers=headers,
+    )
+
+    stored = account(db_session, email).password_hash
+    assert stored != "a new password 2"
+    assert verify_password("a new password 2", stored)
+
+
+@pytest.mark.parametrize("role, status", [("official", "pending"), ("admin", "approved")])
+def test_every_account_manages_its_own_profile(client, db_session, email, role, status):
+    headers = signed_in(client, email)
+    user = account(db_session, email)
+    user.role, user.approval_status = role, status
+    db_session.flush()
+
+    assert client.patch(ME, json={"name": "New Name"}, headers=headers).status_code == 200
+    response = client.put(
+        PASSWORD_URL,
+        json={"current_password": PASSWORD, "new_password": "a new password 2"},
+        headers=headers,
+    )
+    assert response.status_code == 204
+
+
+def test_profile_needs_a_token(client):
+    assert client.patch(ME, json={"name": "X"}).status_code == 401
+    assert client.put(PASSWORD_URL, json={"current_password": "a", "new_password": "bbbbbbbb"}).status_code == 401

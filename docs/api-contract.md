@@ -136,7 +136,7 @@ Invalid credentials: `401 Unauthorized` with code `INVALID_CREDENTIALS`. A wrong
 
 `account_type` is optional: `citizen` or `official`, the choice on the sign-in page. When it is sent and the password is correct, the account must match, or the response is `403 Forbidden` with code `WRONG_ACCOUNT_TYPE` (message: "This is a citizen account" or "This is an official account"). Admins sign in with `official`. When it is left out, any account may sign in.
 
-Pending and rejected officials can sign in: their token works only for `GET /api/v1/auth/me` and `PUT /api/v1/auth/me/official-application`, so they can see their status and the admin's note.
+Pending and rejected officials can sign in: their token works only for their own account (`GET /api/v1/auth/me`, `PATCH /api/v1/auth/me`, `PUT /api/v1/auth/me/password`) and `PUT /api/v1/auth/me/official-application`, so they can see their status and the admin's note.
 
 Tokens:
 
@@ -148,8 +148,9 @@ Tokens:
 Who can use which endpoints (checked on every request, after the token):
 
 - Citizens and approved officials: every endpoint in sections 3–12, with the rules written there.
-- Pending or rejected officials: only `GET /api/v1/auth/me` and `PUT /api/v1/auth/me/official-application`. Everything else returns `403 Forbidden` with code `ACCOUNT_NOT_APPROVED`.
-- Admins: only `GET /api/v1/auth/me` and section 13. Everything else returns `403 Forbidden` with code `ADMIN_ACCOUNT`.
+- Every account, approved or not: its own account (`GET /api/v1/auth/me`, `PATCH /api/v1/auth/me`, `PUT /api/v1/auth/me/password`).
+- Pending or rejected officials: also `PUT /api/v1/auth/me/official-application`. Everything else returns `403 Forbidden` with code `ACCOUNT_NOT_APPROVED`.
+- Admins: also section 13. Everything else returns `403 Forbidden` with code `ADMIN_ACCOUNT`.
 - Section 13 returns `403 Forbidden` with code `ADMIN_ONLY` to everyone but admins.
 
 ### GET /api/v1/auth/me
@@ -159,6 +160,48 @@ Return the logged-in user. Requires a token. Works for every account, including 
 Success: `200 OK`
 
 Response: the User object (see the register response).
+
+### PATCH /api/v1/auth/me
+
+Change the logged-in user's own profile. Works for every account. For now only the name can change; the email, role, approval, and an official's department and job title cannot be changed here.
+
+Request:
+
+    {
+      "name": "Aarav S. Sharma"
+    }
+
+- `name`: required, 1–100 characters after trimming surrounding spaces (as at registration).
+- Any other field returns `422`.
+
+Success: `200 OK` with the User object. Reports keep showing the current name wherever the owner chose to show it.
+
+Errors:
+
+- `422 Unprocessable Entity`: A field fails validation, or an unknown field was sent.
+
+### PUT /api/v1/auth/me/password
+
+Change the logged-in user's password. Works for every account. The current password is required, so someone at an unlocked computer cannot take over the account.
+
+Request:
+
+    {
+      "current_password": "old-password",
+      "new_password": "new-password-2"
+    }
+
+- `new_password`: required, 8–128 characters (as at registration), and different from the current one.
+
+Success: `204 No Content`. The new password is stored as an Argon2 hash.
+
+Errors:
+
+- `400 Bad Request` with code `CURRENT_PASSWORD_INCORRECT`: The current password is wrong. (Not `401`: the user is still signed in.)
+- `400 Bad Request` with code `PASSWORD_UNCHANGED`: The new password is the same as the current one.
+- `422 Unprocessable Entity`: A field fails validation.
+
+Limitation: tokens issued before the change keep working until they expire (at most `ACCESS_TOKEN_EXPIRE_MINUTES`). Signing out other sessions would need a `password_changed_at` column checked against the token's issue time (section 14).
 
 ### PUT /api/v1/auth/me/official-application
 
@@ -1075,6 +1118,7 @@ Errors for both:
 - Deleting evidence uploaded by mistake.
 - Detailed jurisdiction matching for authorities.
 - Retry behavior for failed submissions.
+- Signing out other sessions after a password change (`password_changed_at`), and changing the email.
 
 ## 15. Implementation notes
 

@@ -10,7 +10,7 @@
 - Timestamps use timezone-aware PostgreSQL timestamps and are stored in UTC.
 - Foreign keys enforce relationships between records.
 - Email addresses must be unique, ignoring letter case.
-- Passwords are stored only as secure password hashes.
+- Passwords are stored only as secure password hashes. A user changes their own name and password through the API (api-contract.md section 3); the email cannot be changed yet.
 - Report ownership is enforced by the backend on every protected request.
 - Important workflow changes are recorded in `report_events`.
 - AI results are stored separately from citizen-provided report data.

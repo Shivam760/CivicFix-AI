@@ -79,6 +79,7 @@ Design documents:
 - Keep a record of important status changes and AI analysis runs.
 - Do not treat an AI suggestion as a verified fact.
 - A report becomes resolved only through residents' verification votes, never by an official's claim alone.
+- Users manage their own name, password, and home location on a profile page; changing the password needs the current one.
 - Anyone can apply for an official account, but it can do nothing until an admin approves it; admins are made only with a server script and use only the admin pages.
 - Users' home locations are private: used only to find nearby repairs and nearby issues, never shown to others.
 - Reports are private until their owner shares them with residents within 2 km; the owner's name is hidden from everyone (officials too) unless they choose to show it.

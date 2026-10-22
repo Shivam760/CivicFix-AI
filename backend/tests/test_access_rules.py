@@ -24,6 +24,8 @@ PUBLIC = {
 # Endpoints every logged-in account may use, approved or not.
 ANY_ACCOUNT = {
     ("GET", "/api/v1/auth/me"),
+    ("PATCH", "/api/v1/auth/me"),
+    ("PUT", "/api/v1/auth/me/password"),
     # Pending and rejected officials re-apply here; it refuses everyone else itself.
     ("PUT", "/api/v1/auth/me/official-application"),
 }
